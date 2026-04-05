@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, View } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Text } from '../components/atoms/Text';
@@ -30,13 +31,13 @@ export default function ChallengeScreen() {
     AppConfig.challenge.durationHours * 3600,
   );
   const [gracesUsed, setGracesUsed] = useState(0);
+  const hasNavigated = useRef(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setRemainingSeconds((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          navigation.navigate('Result', { challengeId: route.params.challengeId });
           return 0;
         }
         return prev - 1;
@@ -44,6 +45,13 @@ export default function ChallengeScreen() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (remainingSeconds === 0 && !hasNavigated.current) {
+      hasNavigated.current = true;
+      navigation.navigate('Result', { challengeId: route.params.challengeId });
+    }
+  }, [remainingSeconds]);
 
   const hours = Math.floor(remainingSeconds / 3600);
   const minutes = Math.floor((remainingSeconds % 3600) / 60);
@@ -158,7 +166,7 @@ const styles = StyleSheet.create({
   },
   cardsSection: {
     paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: 32,
+    paddingBottom: Spacing.screenPaddingBottom,
   },
   cardRow: {
     flexDirection: 'row',

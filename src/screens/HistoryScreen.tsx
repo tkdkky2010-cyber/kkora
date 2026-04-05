@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { SafeAreaView, StyleSheet, View, ScrollView } from 'react-native';
+import { StyleSheet, View, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../components/atoms/Text';
 import { Card } from '../components/atoms/Card';
 import { Badge } from '../components/atoms/Badge';
@@ -115,6 +116,10 @@ export default function HistoryScreen() {
               );
 
               if ((firstDay + day) % 7 === 0 || day === daysInMonth) {
+                // 마지막 줄 빈 셀 채우기
+                while (cells.length < 7) {
+                  cells.push(<View key={`pad-${cells.length}`} style={styles.calendarCell} />);
+                }
                 rows.push(
                   <View key={`row-${day}`} style={styles.calendarRow}>
                     {cells}
@@ -180,7 +185,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.screenPadding,
-    paddingBottom: 32,
+    paddingBottom: Spacing.screenPaddingBottom,
   },
   calendarRow: {
     flexDirection: 'row',

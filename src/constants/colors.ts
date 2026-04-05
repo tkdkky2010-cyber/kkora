@@ -17,6 +17,9 @@ export const Colors = {
   // 보더
   border: 'rgba(255, 255, 255, 0.06)',
 
+  // 브랜드
+  kakaoYellow: '#FEE500',
+
   // 유틸
   transparent: 'transparent',
   white: '#ffffff',

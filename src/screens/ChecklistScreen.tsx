@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
 import {
-  SafeAreaView,
   StyleSheet,
   View,
   ScrollView,
   Animated,
   PanResponder,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Text } from '../components/atoms/Text';
@@ -34,9 +35,11 @@ const CHECK_ITEMS: CheckItem[] = [
   { id: 'responsibility', label: '미준수로 인한 실패는 본인 책임입니다' },
 ];
 
-const SLIDE_THRESHOLD = 120;
-const SLIDER_WIDTH = 280;
 const THUMB_SIZE = 56;
+const SCREEN_WIDTH = Dimensions.get('window').width;
+// 슬라이더 폭 = 화면폭 - 좌우 screenPadding(24*2) - 카드 padding(20*2) - 카드 border(1*2)
+const SLIDER_WIDTH = SCREEN_WIDTH - 48 - 40 - 2;
+const SLIDE_THRESHOLD = SLIDER_WIDTH * 0.45;
 
 export default function ChecklistScreen() {
   const navigation = useNavigation<Nav>();
@@ -187,7 +190,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: 32,
+    paddingBottom: Spacing.screenPaddingBottom,
     paddingTop: 16,
     backgroundColor: Colors.bgPrimary,
   },

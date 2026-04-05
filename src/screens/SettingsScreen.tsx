@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { SafeAreaView, StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../components/atoms/Text';
 import { Card } from '../components/atoms/Card';
 import { Toggle } from '../components/atoms/Toggle';
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Spacing.screenPadding,
     paddingTop: Spacing.screenPadding,
-    paddingBottom: 32,
+    paddingBottom: Spacing.screenPaddingBottom,
   },
   settingRow: {
     flexDirection: 'row',
