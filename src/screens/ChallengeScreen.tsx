@@ -13,6 +13,7 @@ import { Text } from '../components/atoms/Text';
 import { Card } from '../components/atoms/Card';
 import { Badge } from '../components/atoms/Badge';
 import { TimerDisplay } from '../components/molecules/TimerDisplay';
+import { WarBroadcast } from '../components/organisms/WarBroadcast';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
 import { AppConfig } from '../constants/config';
@@ -38,6 +39,10 @@ export default function ChallengeScreen() {
 
   const hasNavigated = useRef(false);
   const { updateGraces, endChallenge } = useChallenge();
+  const prevSurvivorsRef = useRef(0);
+  const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [broadcastType, setBroadcastType] = useState<'info' | 'danger' | 'success'>('info');
+  const [broadcastVisible, setBroadcastVisible] = useState(false);
 
   // 실패 애니메이션
   const shakeAnim = useRef(new Animated.Value(0)).current;
@@ -92,9 +97,32 @@ export default function ChallengeScreen() {
     return unsubscribe;
   }, [challengeId, navigation]);
 
-  // dailyPool 실시간 구독
+  // dailyPool 실시간 구독 + 전쟁 중계
   useEffect(() => {
-    const unsubscribe = subscribeDailyPool((data) => setPoolData(data));
+    const unsubscribe = subscribeDailyPool((data) => {
+      const prev = prevSurvivorsRef.current;
+      const curr = data.survivors;
+
+      if (prev > 0 && curr < prev) {
+        const fallen = prev - curr;
+        setBroadcastMsg(`방금 ${fallen}명이 탈락했습니다`);
+        setBroadcastType('danger');
+        setBroadcastVisible(true);
+        setTimeout(() => setBroadcastVisible(false), 3000);
+      }
+
+      const rate = data.totalParticipants > 0
+        ? Math.round((curr / data.totalParticipants) * 100) : 0;
+      if (prev > 0 && rate <= 50 && Math.round((prev / data.totalParticipants) * 100) > 50) {
+        setBroadcastMsg('생존률 50% 이하! 절반이 탈락했습니다');
+        setBroadcastType('danger');
+        setBroadcastVisible(true);
+        setTimeout(() => setBroadcastVisible(false), 4000);
+      }
+
+      prevSurvivorsRef.current = curr;
+      setPoolData(data);
+    });
     return unsubscribe;
   }, []);
 
@@ -178,6 +206,9 @@ export default function ChallengeScreen() {
       />
 
       <Animated.View style={[styles.content, { transform: [{ translateX: shakeAnim }] }]}>
+        {/* 전쟁 중계 */}
+        <WarBroadcast message={broadcastMsg} type={broadcastType} visible={broadcastVisible} />
+
         {/* 상단 상태 */}
         <View style={styles.header}>
           <Badge label="챌린지 진행 중" color={Colors.green} />

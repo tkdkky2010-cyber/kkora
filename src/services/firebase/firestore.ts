@@ -9,13 +9,14 @@ import { db } from './config';
 import { getServerTodayString } from '../../utils/serverTime';
 import type { UserProfile } from '../../types/user';
 
-// dailyPool 실시간 구독
+// dailyPool 실시간 구독 (dateOverride로 특정 날짜 구독 가능)
 export function subscribeDailyPool(
   onData: (data: { totalParticipants: number; totalPool: number; survivors: number }) => void,
   onError?: (error: Error) => void,
+  dateOverride?: string,
 ) {
-  const today = getServerTodayString();
-  const docRef = doc(db, 'dailyPool', today);
+  const dateStr = dateOverride || getServerTodayString();
+  const docRef = doc(db, 'dailyPool', dateStr);
 
   return onSnapshot(
     docRef,

@@ -4,12 +4,13 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { ChallengeProvider } from './src/contexts/ChallengeContext';
 import { OfflineBanner } from './src/components/atoms/OfflineBanner';
 import AppNavigator from './src/navigation/AppNavigator';
+import { linking } from './src/navigation/linking';
 
 export default function App() {
   return (
     <AuthProvider>
       <ChallengeProvider>
-        <NavigationContainer>
+        <NavigationContainer linking={linking}>
           <StatusBar style="light" />
           <OfflineBanner />
           <AppNavigator />
