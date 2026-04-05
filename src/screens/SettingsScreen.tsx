@@ -6,6 +6,7 @@ import { Card } from '../components/atoms/Card';
 import { Toggle } from '../components/atoms/Toggle';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SettingRowProps {
   label: string;
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
   const [lockScreen, setLockScreen] = useState(false);
   const [pushNotification, setPushNotification] = useState(true);
   const [reminderNotification, setReminderNotification] = useState(true);
+  const { logOut } = useAuth();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,7 +103,7 @@ export default function SettingsScreen() {
         </Card>
 
         {/* 로그아웃 / 탈퇴 */}
-        <TouchableOpacity style={styles.dangerButton} activeOpacity={0.7}>
+        <TouchableOpacity style={styles.dangerButton} activeOpacity={0.7} onPress={logOut}>
           <Text variant="body" color={Colors.red}>로그아웃</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.dangerButton} activeOpacity={0.7}>

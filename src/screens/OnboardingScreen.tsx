@@ -14,6 +14,7 @@ import { Button } from '../components/atoms/Button';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
 import { RootStackParamList } from '../types/navigation';
+import { markOnboardingDone } from '../app/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
@@ -63,8 +64,9 @@ export default function OnboardingScreen() {
 
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (isLast) {
+      await markOnboardingDone();
       navigation.navigate('Login');
     } else {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });

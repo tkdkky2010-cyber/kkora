@@ -1,17 +1,27 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Text } from '../components/atoms/Text';
 import { Button } from '../components/atoms/Button';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
-import { RootStackParamList } from '../types/navigation';
-
-type Nav = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginScreen() {
-  const navigation = useNavigation<Nav>();
+  const { signIn } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      await signIn();
+      // 로그인 성공 시 AuthContext가 user 변경 → AppNavigator가 자동으로 Home 표시
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -26,7 +36,8 @@ export default function LoginScreen() {
       <View style={styles.bottom}>
         <Button
           label="카카오로 시작하기"
-          onPress={() => navigation.navigate('Home')}
+          onPress={handleLogin}
+          loading={loading}
           style={styles.kakaoButton}
         />
         <Text
