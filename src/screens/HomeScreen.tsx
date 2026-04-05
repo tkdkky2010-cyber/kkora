@@ -15,14 +15,13 @@ import { LevelInfoModal } from '../components/organisms/LevelInfoModal';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
 import { getLevelByStreak } from '../constants/levels';
+import { subscribeDailyPool } from '../services/firebase/firestore';
 import { RootStackParamList } from '../types/navigation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
-// Mock data — 나중에 Firebase로 교체
-const MOCK = {
-  participants: 1247,
-  totalPool: 3741000,
+// Mock — Firebase 연동 후 유저 데이터로 교체
+const MOCK_USER = {
   streak: 5,
   playerNumber: 247,
 };
@@ -31,15 +30,32 @@ function formatCurrency(amount: number): string {
   return amount.toLocaleString('ko-KR') + '원';
 }
 
-function getTimeUntilOpen(): { hours: number; minutes: number; seconds: number } | null {
+// 홈 화면 상태: 'open' (22~24시), 'countdown' (7~22시), 'closed' (0~7시)
+type HomeTimeState =
+  | { status: 'open' }
+  | { status: 'countdown'; hours: number; minutes: number; seconds: number }
+  | { status: 'closed' };
+
+function getHomeTimeState(): HomeTimeState {
   const now = new Date();
   const h = now.getHours();
-  if (h >= 22 || h < 0) return null;
+
+  // 22:00 ~ 23:59 → 참여 가능
+  if (h >= 22) {
+    return { status: 'open' };
+  }
+
+  // 00:00 ~ 06:59 → 마감 (정산 전)
+  if (h < 7) {
+    return { status: 'closed' };
+  }
+
+  // 07:00 ~ 21:59 → 카운트다운
   const target = new Date(now);
   target.setHours(22, 0, 0, 0);
-  if (target.getTime() <= now.getTime()) return null;
   const diff = target.getTime() - now.getTime();
   return {
+    status: 'countdown',
     hours: Math.floor(diff / 3600000),
     minutes: Math.floor((diff % 3600000) / 60000),
     seconds: Math.floor((diff % 60000) / 1000),
@@ -48,21 +64,33 @@ function getTimeUntilOpen(): { hours: number; minutes: number; seconds: number }
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
-  const [timeUntilOpen, setTimeUntilOpen] = useState(getTimeUntilOpen());
+  const [timeState, setTimeState] = useState<HomeTimeState>(getHomeTimeState());
   const [showLevelInfo, setShowLevelInfo] = useState(false);
-  const isOpen = timeUntilOpen === null;
+  const [poolData, setPoolData] = useState({
+    totalParticipants: 0,
+    totalPool: 0,
+    survivors: 0,
+  });
 
-  const level = getLevelByStreak(MOCK.streak);
+  const level = getLevelByStreak(MOCK_USER.streak);
   const isNumberPhase = level.requiredDays === 0;
   const levelName = isNumberPhase
-    ? level.name.replace('???', String(MOCK.playerNumber))
+    ? level.name.replace('???', String(MOCK_USER.playerNumber))
     : level.name;
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimeUntilOpen(getTimeUntilOpen());
+      setTimeState(getHomeTimeState());
     }, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Firestore dailyPool 실시간 구독
+  useEffect(() => {
+    const unsubscribe = subscribeDailyPool((data) => {
+      setPoolData(data);
+    });
+    return unsubscribe;
   }, []);
 
   return (
@@ -94,10 +122,10 @@ export default function HomeScreen() {
               <Ionicons name="help-circle-outline" size={20} color={Colors.textSub} />
             </TouchableOpacity>
           </View>
-          {MOCK.streak > 0 ? (
+          {MOCK_USER.streak > 0 ? (
             <View style={styles.streakBadge}>
               <Text variant="largeNumber" color={Colors.gold}>
-                {MOCK.streak}
+                {MOCK_USER.streak}
               </Text>
               <Text variant="h2" color={Colors.gold}>일 연속 성공</Text>
             </View>
@@ -115,7 +143,7 @@ export default function HomeScreen() {
               오늘 밤 참전자
             </Text>
             <Text variant="h2">
-              {MOCK.participants.toLocaleString()}
+              {poolData.totalParticipants.toLocaleString()}
               <Text variant="caption" color={Colors.textSub}>명</Text>
             </Text>
           </Card>
@@ -124,7 +152,7 @@ export default function HomeScreen() {
               총 풀
             </Text>
             <Text variant="h2" color={Colors.gold}>
-              {formatCurrency(MOCK.totalPool)}
+              {formatCurrency(poolData.totalPool)}
             </Text>
           </Card>
         </View>
@@ -152,7 +180,7 @@ export default function HomeScreen() {
 
       {/* Bottom CTA */}
       <View style={styles.bottom}>
-        {isOpen ? (
+        {timeState.status === 'open' ? (
           <TouchableOpacity
             style={styles.sleepButton}
             activeOpacity={0.8}
@@ -165,19 +193,26 @@ export default function HomeScreen() {
               지금 참전하기
             </Text>
           </TouchableOpacity>
-        ) : (
+        ) : timeState.status === 'countdown' ? (
           <View style={styles.closedContainer}>
             <Text variant="caption" color={Colors.textSub}>참전 시간까지</Text>
             <Text
               variant="largeNumber"
               style={{ letterSpacing: 2, fontVariant: ['tabular-nums'], marginTop: 4 }}
             >
-              {String(timeUntilOpen!.hours).padStart(2, '0')}:
-              {String(timeUntilOpen!.minutes).padStart(2, '0')}:
-              {String(timeUntilOpen!.seconds).padStart(2, '0')}
+              {String(timeState.hours).padStart(2, '0')}:
+              {String(timeState.minutes).padStart(2, '0')}:
+              {String(timeState.seconds).padStart(2, '0')}
             </Text>
             <Text variant="caption" color={Colors.textSub} style={{ marginTop: 8 }}>
               밤 10시 ~ 자정에 참전할 수 있어요
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.closedContainer}>
+            <Text variant="h2" color={Colors.textSub}>오늘 밤 참전 마감</Text>
+            <Text variant="caption" color={Colors.textSub} style={{ marginTop: 8 }}>
+              내일 밤 10시에 다시 만나요
             </Text>
           </View>
         )}
@@ -187,7 +222,7 @@ export default function HomeScreen() {
         visible={showLevelInfo}
         onClose={() => setShowLevelInfo(false)}
         currentLevel={level}
-        playerNumber={MOCK.playerNumber}
+        playerNumber={MOCK_USER.playerNumber}
       />
     </SafeAreaView>
   );

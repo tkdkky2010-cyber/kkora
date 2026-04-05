@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../components/atoms/Text';
 import { Card } from '../components/atoms/Card';
@@ -103,7 +103,12 @@ export default function SettingsScreen() {
         </Card>
 
         {/* 로그아웃 / 탈퇴 */}
-        <TouchableOpacity style={styles.dangerButton} activeOpacity={0.7} onPress={logOut}>
+        <TouchableOpacity style={styles.dangerButton} activeOpacity={0.7} onPress={() => {
+          Alert.alert('로그아웃', '정말 로그아웃하시겠어요?', [
+            { text: '취소', style: 'cancel' },
+            { text: '로그아웃', style: 'destructive', onPress: logOut },
+          ]);
+        }}>
           <Text variant="body" color={Colors.red}>로그아웃</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.dangerButton} activeOpacity={0.7}>

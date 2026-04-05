@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../components/atoms/Text';
 import { Button } from '../components/atoms/Button';
@@ -17,7 +17,7 @@ export default function LoginScreen() {
       await signIn();
       // 로그인 성공 시 AuthContext가 user 변경 → AppNavigator가 자동으로 Home 표시
     } catch (error) {
-      console.error('Login error:', error);
+      Alert.alert('로그인 실패', '잠시 후 다시 시도해주세요.');
     } finally {
       setLoading(false);
     }

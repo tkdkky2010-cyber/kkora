@@ -42,6 +42,7 @@ export default function AppNavigator() {
     AsyncStorage.getItem(ONBOARDING_KEY).then((value) => {
       setOnboardingDone(value === 'true');
     });
+    setOnboardingDoneSetter(setOnboardingDone);
   }, []);
 
   // 로딩 중
@@ -79,7 +80,14 @@ export default function AppNavigator() {
   );
 }
 
-// 온보딩 완료 표시 (OnboardingScreen에서 호출)
+// 온보딩 완료 표시용 콜백 (AppNavigator에서 주입)
+let _setOnboardingDone: ((val: boolean) => void) | null = null;
+
+export function setOnboardingDoneSetter(setter: (val: boolean) => void) {
+  _setOnboardingDone = setter;
+}
+
 export async function markOnboardingDone() {
   await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
+  _setOnboardingDone?.(true);
 }

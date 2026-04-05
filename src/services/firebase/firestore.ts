@@ -3,9 +3,7 @@ import {
   getDoc,
   setDoc,
   onSnapshot,
-  collection,
   serverTimestamp,
-  Timestamp,
 } from 'firebase/firestore';
 import { db } from './config';
 
