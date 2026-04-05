@@ -131,7 +131,8 @@ export const settleChallenge = functions
     });
 
     // 3. 249개씩 청크 처리 (Firestore 500 op 제한)
-    const CHUNK_SIZE = 249;
+    // Firestore 트랜잭션 500 op 제한: 유저당 3 ops (challenge update + user get + user update)
+    const CHUNK_SIZE = 166;
     for (let i = 0; i < successDocs.length; i += CHUNK_SIZE) {
       const chunk = successDocs.slice(i, i + CHUNK_SIZE);
 

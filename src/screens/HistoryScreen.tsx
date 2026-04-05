@@ -15,6 +15,7 @@ import { Badge } from '../components/atoms/Badge';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
 import { useAuth } from '../contexts/AuthContext';
+import { getServerNow } from '../utils/serverTime';
 
 const MONTH_NAMES = [
   '1월', '2월', '3월', '4월', '5월', '6월',
@@ -39,7 +40,7 @@ function getFirstDayOfWeek(year: number, month: number): number {
 }
 
 export default function HistoryScreen() {
-  const now = new Date();
+  const now = getServerNow();
   const { user } = useAuth();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());

@@ -17,6 +17,7 @@ import { Badge } from '../components/atoms/Badge';
 import { LevelIcon } from '../components/atoms/LevelIcon';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
+import { AppConfig } from '../constants/config';
 import { getLevelByStreak } from '../constants/levels';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserDoc } from '../services/firebase/firestore';
@@ -219,7 +220,7 @@ export default function ResultScreen() {
                 </Text>
                 <Text variant="h2" color={Colors.gold} style={{ marginTop: 4 }}>
                   +{Math.round(
-                    ((poolData.totalParticipants - poolData.survivors) * 1000 * 0.8) /
+                    ((poolData.totalParticipants - poolData.survivors) * 1000 * (1 - AppConfig.fee.normalRate)) /
                     (poolData.survivors > 0 ? poolData.survivors : 1)
                   ).toLocaleString()}원을 받았을 거예요!
                 </Text>

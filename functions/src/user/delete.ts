@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { refundBalance } from '../payment/refund';
+import { checkRateLimit } from '../utils/security';
 
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
@@ -21,6 +22,12 @@ export const deleteUser = functions
 
     const userId = context.auth.uid;
     const { bankCode, accountNumber } = data || {};
+
+    // Rate limiting (30초 간격)
+    const allowed = await checkRateLimit(db, userId, 'deleteUser', 30000);
+    if (!allowed) {
+      throw new functions.HttpsError('resource-exhausted', '요청이 너무 빠릅니다.');
+    }
 
     // 활성 챌린지 확인
     const activeChallenges = await db

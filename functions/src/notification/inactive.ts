@@ -15,10 +15,10 @@ export const sendInactiveReminder = functions
   .onRun(async () => {
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
+    // deleted 필드가 아닌 lastActiveAt만으로 필터 (Firestore 다중 범위 필터 제약)
     const inactiveUsers = await db
       .collection('users')
       .where('lastActiveAt', '<', threeDaysAgo)
-      .where('deleted', '!=', true)
       .limit(5000)
       .get();
 
@@ -27,7 +27,9 @@ export const sendInactiveReminder = functions
     const messages: admin.messaging.Message[] = [];
 
     for (const userDoc of inactiveUsers.docs) {
-      const fcmToken = userDoc.data().fcmToken;
+      const data = userDoc.data();
+      if (data.deleted) continue; // 탈퇴 유저 건너뛰기
+      const fcmToken = data.fcmToken;
       if (!fcmToken) continue;
 
       messages.push({

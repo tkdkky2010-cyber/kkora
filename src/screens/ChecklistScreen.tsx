@@ -227,9 +227,12 @@ export default function ChecklistScreen() {
     }
 
     // '되돌릴 수 없습니다' 최종 확인
+    const confirmMessage = isFreePlay
+      ? '무료 체험으로 참여합니다.\n시작 후에는 되돌릴 수 없습니다.'
+      : `참여금 ${selectedAmount.toLocaleString()}원이 차감됩니다.\n시작 후에는 되돌릴 수 없습니다.`;
     Alert.alert(
       '챌린지를 시작할까요?',
-      `참여금 ${selectedAmount.toLocaleString()}원이 차감됩니다.\n시작 후에는 되돌릴 수 없습니다.`,
+      confirmMessage,
       [
         {
           text: '취소',
@@ -244,7 +247,8 @@ export default function ChecklistScreen() {
           onPress: async () => {
             setLoading(true);
             try {
-              const result = await startChallenge(selectedAmount);
+              const challengeAmount = isFreePlay ? 0 : selectedAmount;
+              const result = await startChallenge(challengeAmount);
               setStarted(true);
               startChallengeContext(result.challengeId);
               navigation.navigate('Challenge', { challengeId: result.challengeId });

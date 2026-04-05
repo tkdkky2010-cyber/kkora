@@ -16,7 +16,6 @@ export const sendReminder = functions
     // FCM 토큰이 있는 활성 유저 조회
     const usersSnapshot = await db
       .collection('users')
-      .where('deleted', '!=', true)
       .limit(10000)
       .get();
 
@@ -26,6 +25,7 @@ export const sendReminder = functions
 
     for (const userDoc of usersSnapshot.docs) {
       const userData = userDoc.data();
+      if (userData.deleted) continue;
       const fcmToken = userData.fcmToken;
       if (!fcmToken) continue;
 

@@ -21,7 +21,10 @@ service cloud.firestore {
                     && request.auth.uid == userId
                     && !request.resource.data.diff(resource.data).affectedKeys()
                       .hasAny(['balance', 'totalEarnings', 'freeTrialDaysLeft',
-                               'streak', 'maxStreak', 'level']);
+                               'streak', 'maxStreak', 'level',
+                               'weeklyFailures', 'weekStartDate', 'playerNumber',
+                               'deleted', 'deletedAt', 'refundBankCode',
+                               'refundAccountNumber', 'refundAmount']);
       // 삭제는 Cloud Functions(Admin SDK)만 가능
       allow delete: if false;
     }

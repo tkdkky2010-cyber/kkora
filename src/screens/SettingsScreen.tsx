@@ -152,6 +152,7 @@ export default function SettingsScreen() {
                 onPress: async () => {
                   try {
                     const { refundedAmount } = await deleteAccount();
+                    await logOut();
                     Alert.alert(
                       '탈퇴 완료',
                       refundedAmount > 0
