@@ -6,19 +6,15 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './config';
-
-// 오늘 날짜 문자열 (YYYY-MM-DD)
-function getTodayString(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
+import { getServerTodayString } from '../../utils/serverTime';
+import type { UserProfile } from '../../types/user';
 
 // dailyPool 실시간 구독
 export function subscribeDailyPool(
   onData: (data: { totalParticipants: number; totalPool: number; survivors: number }) => void,
   onError?: (error: Error) => void,
 ) {
-  const today = getTodayString();
+  const today = getServerTodayString();
   const docRef = doc(db, 'dailyPool', today);
 
   return onSnapshot(
@@ -40,10 +36,10 @@ export function subscribeDailyPool(
 }
 
 // 유저 문서 가져오기
-export async function getUserDoc(userId: string) {
+export async function getUserDoc(userId: string): Promise<UserProfile | null> {
   const docRef = doc(db, 'users', userId);
   const snapshot = await getDoc(docRef);
-  return snapshot.exists() ? snapshot.data() : null;
+  return snapshot.exists() ? (snapshot.data() as UserProfile) : null;
 }
 
 // 유저 문서 생성 (최초 가입 시)

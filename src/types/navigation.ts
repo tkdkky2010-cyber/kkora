@@ -8,6 +8,8 @@ export type RootStackParamList = {
   Profile: undefined;
   History: undefined;
   Settings: undefined;
+  Charge: undefined;
+  Withdraw: undefined;
 };
 
 declare global {

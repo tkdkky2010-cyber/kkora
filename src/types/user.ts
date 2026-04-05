@@ -1,10 +1,6 @@
-// Firebase Timestamp는 Firebase 연동 시 교체
-export interface Timestamp {
-  seconds: number;
-  nanoseconds: number;
-}
+import { Timestamp } from 'firebase/firestore';
 
-export interface User {
+export interface UserProfile {
   displayName: string;
   kakaoId: string;
   deviceId: string;
@@ -16,4 +12,5 @@ export interface User {
   totalEarnings: number;
   createdAt: Timestamp;
   lastActiveAt: Timestamp;
+  playerNumber?: number;
 }

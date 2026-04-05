@@ -2,24 +2,36 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 유저 데이터: 본인만 읽기 가능, balance는 Functions만 수정
+    // 유저 데이터: 본인만 읽기 가능
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // 생성 시: 초기값 검증 (balance=0, freeTrialDaysLeft=3 등 고정값 강제)
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.balance == 0
+                    && request.resource.data.freeTrialDaysLeft == 3
+                    && request.resource.data.streak == 0
+                    && request.resource.data.maxStreak == 0
+                    && request.resource.data.level == '참가자'
+                    && request.resource.data.totalEarnings == 0;
+
+      // 수정 시: 금융 필드 + 게임 진행 필드는 Cloud Functions만 수정 가능
       allow update: if request.auth != null
                     && request.auth.uid == userId
                     && !request.resource.data.diff(resource.data).affectedKeys()
-                      .hasAny(['balance', 'totalEarnings', 'freeTrialDaysLeft']);
-      // balance, totalEarnings, freeTrialDaysLeft는 Cloud Functions만 수정 가능
+                      .hasAny(['balance', 'totalEarnings', 'freeTrialDaysLeft',
+                               'streak', 'maxStreak', 'level']);
+      // 삭제는 Cloud Functions(Admin SDK)만 가능
+      allow delete: if false;
     }
 
-    // 챌린지: 본인 것만 읽기, 생성은 가능하나 수정은 Functions만
+    // 챌린지: 본인 것만 읽기, 생성/수정은 Cloud Functions만
     match /challenges/{challengeId} {
       allow read: if request.auth != null
                   && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
-      // status, earnings, settledAt 등은 Cloud Functions만 수정
+      // 클라이언트에서 직접 생성/수정 불가 — Cloud Functions만 처리
+      allow create: if false;
       allow update: if false;
     }
 
@@ -34,6 +46,24 @@ service cloud.firestore {
       allow read: if request.auth != null
                   && resource.data.userId == request.auth.uid;
       allow write: if false;
+    }
+
+    // 서버 시간 동기화용 (유저별 개별 문서)
+    match /_serverTime/{docId} {
+      allow read, write: if request.auth != null
+                         && docId == request.auth.uid;
+    }
+
+    // 거래 내역: 본인 것만 읽기, 수정은 Functions만
+    match /transactions/{txId} {
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Rate Limiting (Cloud Functions만 쓰기)
+    match /_rateLimits/{docId} {
+      allow read, write: if false;
     }
   }
 }

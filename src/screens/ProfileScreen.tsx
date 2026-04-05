@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, View, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,25 +12,23 @@ import { LevelInfoModal } from '../components/organisms/LevelInfoModal';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
 import { getLevelByStreak } from '../constants/levels';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { RootStackParamList } from '../types/navigation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
-// Mock — Firebase 연동 시 교체
-const MOCK_USER = {
-  displayName: '테스트 유저',
-  balance: 12500,
-  streak: 5,
-  maxStreak: 12,
-  totalEarnings: 34200,
-  totalChallenges: 28,
-  successRate: 82,
-};
-
 export default function ProfileScreen() {
   const navigation = useNavigation<Nav>();
+  const { userData } = useUserProfile();
   const [showLevelInfo, setShowLevelInfo] = useState(false);
-  const level = getLevelByStreak(MOCK_USER.streak);
+
+  const displayName = userData?.displayName ?? '유저';
+  const balance = userData?.balance ?? 0;
+  const streak = userData?.streak ?? 0;
+  const maxStreak = userData?.maxStreak ?? 0;
+  const totalEarnings = userData?.totalEarnings ?? 0;
+  const playerNumber = userData?.playerNumber ?? 0;
+  const level = getLevelByStreak(streak);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -40,9 +38,9 @@ export default function ProfileScreen() {
       >
         {/* 프로필 헤더 */}
         <View style={styles.profileHeader}>
-          <LevelBadge level={level} streak={MOCK_USER.streak} />
+          <LevelBadge level={level} streak={streak} playerNumber={playerNumber} />
           <View style={styles.nameRow}>
-            <Text variant="h2">{MOCK_USER.displayName}</Text>
+            <Text variant="h2">{displayName}</Text>
             <TouchableOpacity
               onPress={() => setShowLevelInfo(true)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -56,18 +54,18 @@ export default function ProfileScreen() {
         <Card style={styles.balanceCard}>
           <Text variant="caption" color={Colors.textSub}>내 잔액</Text>
           <Text variant="largeNumber" color={Colors.green} style={{ marginTop: 4 }}>
-            {MOCK_USER.balance.toLocaleString()}원
+            {balance.toLocaleString()}원
           </Text>
           <View style={styles.balanceButtons}>
             <Button
               label="충전"
-              onPress={() => {}}
+              onPress={() => navigation.navigate('Charge')}
               style={{ flex: 1 }}
             />
             <Button
               label="출금"
               variant="secondary"
-              onPress={() => {}}
+              onPress={() => navigation.navigate('Withdraw')}
               style={{ flex: 1 }}
             />
           </View>
@@ -78,13 +76,13 @@ export default function ProfileScreen() {
           <Text variant="caption" color={Colors.textSub}>연속 성공일</Text>
           <View style={styles.streakRow}>
             <Text variant="largeNumber" color={Colors.gold}>
-              {MOCK_USER.streak}
+              {streak}
             </Text>
             <Text variant="h2" color={Colors.gold} style={{ marginLeft: 4 }}>일</Text>
           </View>
           <View style={styles.streakSubRow}>
             <Text variant="caption" color={Colors.textSub}>
-              최대 {MOCK_USER.maxStreak}일
+              최대 {maxStreak}일
             </Text>
           </View>
         </Card>
@@ -95,16 +93,16 @@ export default function ProfileScreen() {
           <View style={styles.statGrid}>
             <View style={styles.statItem}>
               <Text variant="h2" color={Colors.green}>
-                +{MOCK_USER.totalEarnings.toLocaleString()}원
+                +{totalEarnings.toLocaleString()}원
               </Text>
               <Text variant="caption" color={Colors.textSub}>총 수익</Text>
             </View>
             <View style={styles.statItem}>
-              <Text variant="h2">{MOCK_USER.successRate}%</Text>
+              <Text variant="h2">-</Text>
               <Text variant="caption" color={Colors.textSub}>성공률</Text>
             </View>
             <View style={styles.statItem}>
-              <Text variant="h2">{MOCK_USER.totalChallenges}회</Text>
+              <Text variant="h2">-</Text>
               <Text variant="caption" color={Colors.textSub}>총 참여</Text>
             </View>
           </View>
@@ -128,6 +126,7 @@ export default function ProfileScreen() {
         visible={showLevelInfo}
         onClose={() => setShowLevelInfo(false)}
         currentLevel={level}
+        playerNumber={playerNumber}
       />
     </SafeAreaView>
   );
@@ -145,6 +144,7 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     alignItems: 'center',
+    marginTop: 44,
     marginBottom: Spacing.sectionGap,
   },
   nameRow: {

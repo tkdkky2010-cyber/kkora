@@ -1,4 +1,4 @@
-import { Timestamp } from './user';
+import { Timestamp } from 'firebase/firestore';
 
 export type ChallengeStatus = 'active' | 'success' | 'failed';
 

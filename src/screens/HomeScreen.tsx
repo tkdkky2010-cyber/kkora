@@ -14,17 +14,14 @@ import { LevelIcon } from '../components/atoms/LevelIcon';
 import { LevelInfoModal } from '../components/organisms/LevelInfoModal';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
+import { AppConfig } from '../constants/config';
 import { getLevelByStreak } from '../constants/levels';
 import { subscribeDailyPool } from '../services/firebase/firestore';
+import { getServerNow } from '../utils/serverTime';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { RootStackParamList } from '../types/navigation';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Home'>;
-
-// Mock — Firebase 연동 후 유저 데이터로 교체
-const MOCK_USER = {
-  streak: 5,
-  playerNumber: 247,
-};
 
 function formatCurrency(amount: number): string {
   return amount.toLocaleString('ko-KR') + '원';
@@ -37,22 +34,22 @@ type HomeTimeState =
   | { status: 'closed' };
 
 function getHomeTimeState(): HomeTimeState {
-  const now = new Date();
+  const now = getServerNow();
   const h = now.getHours();
 
   // 22:00 ~ 23:59 → 참여 가능
-  if (h >= 22) {
+  if (h >= AppConfig.challenge.startHour) {
     return { status: 'open' };
   }
 
   // 00:00 ~ 06:59 → 마감 (정산 전)
-  if (h < 7) {
+  if (h < AppConfig.challenge.settlementHour) {
     return { status: 'closed' };
   }
 
   // 07:00 ~ 21:59 → 카운트다운
   const target = new Date(now);
-  target.setHours(22, 0, 0, 0);
+  target.setHours(AppConfig.challenge.startHour, 0, 0, 0);
   const diff = target.getTime() - now.getTime();
   return {
     status: 'countdown',
@@ -64,6 +61,7 @@ function getHomeTimeState(): HomeTimeState {
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
+  const { userData } = useUserProfile();
   const [timeState, setTimeState] = useState<HomeTimeState>(getHomeTimeState());
   const [showLevelInfo, setShowLevelInfo] = useState(false);
   const [poolData, setPoolData] = useState({
@@ -72,10 +70,12 @@ export default function HomeScreen() {
     survivors: 0,
   });
 
-  const level = getLevelByStreak(MOCK_USER.streak);
+  const streak = userData?.streak ?? 0;
+  const playerNumber = userData?.playerNumber ?? 0;
+  const level = getLevelByStreak(streak);
   const isNumberPhase = level.requiredDays === 0;
   const levelName = isNumberPhase
-    ? level.name.replace('???', String(MOCK_USER.playerNumber))
+    ? level.name.replace('???', String(playerNumber))
     : level.name;
 
   useEffect(() => {
@@ -92,6 +92,7 @@ export default function HomeScreen() {
     });
     return unsubscribe;
   }, []);
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -122,10 +123,10 @@ export default function HomeScreen() {
               <Ionicons name="help-circle-outline" size={20} color={Colors.textSub} />
             </TouchableOpacity>
           </View>
-          {MOCK_USER.streak > 0 ? (
+          {streak > 0 ? (
             <View style={styles.streakBadge}>
               <Text variant="largeNumber" color={Colors.gold}>
-                {MOCK_USER.streak}
+                {streak}
               </Text>
               <Text variant="h2" color={Colors.gold}>일 연속 성공</Text>
             </View>
@@ -160,20 +161,26 @@ export default function HomeScreen() {
         {/* Info Card */}
         <Card>
           <View style={styles.infoRow}>
-            <Text variant="caption" color={Colors.textSub}>어젯밤 성공률</Text>
-            <Text variant="body" style={{ fontWeight: '600' }}>78%</Text>
+            <Text variant="caption" color={Colors.textSub}>생존자</Text>
+            <Text variant="body" style={{ fontWeight: '600' }}>
+              {poolData.survivors.toLocaleString()}명
+            </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
-            <Text variant="caption" color={Colors.textSub}>어젯밤 수익률</Text>
+            <Text variant="caption" color={Colors.textSub}>생존률</Text>
             <Text variant="body" color={Colors.green} style={{ fontWeight: '600' }}>
-              +28.2%
+              {poolData.totalParticipants > 0
+                ? Math.round((poolData.survivors / poolData.totalParticipants) * 100) + '%'
+                : '-'}
             </Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.infoRow}>
             <Text variant="caption" color={Colors.textSub}>참여 상한</Text>
-            <Text variant="body" style={{ fontWeight: '600' }}>10,000원</Text>
+            <Text variant="body" style={{ fontWeight: '600' }}>
+              {AppConfig.maxAmount.toLocaleString()}원
+            </Text>
           </View>
         </Card>
       </View>
@@ -222,7 +229,7 @@ export default function HomeScreen() {
         visible={showLevelInfo}
         onClose={() => setShowLevelInfo(false)}
         currentLevel={level}
-        playerNumber={MOCK_USER.playerNumber}
+        playerNumber={playerNumber}
       />
     </SafeAreaView>
   );
@@ -242,9 +249,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.bgCard,
     justifyContent: 'center',
     alignItems: 'center',
@@ -266,7 +273,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Spacing.cardGap,
     marginBottom: Spacing.cardGap,
   },
   statCard: {
@@ -288,7 +295,7 @@ const styles = StyleSheet.create({
   },
   sleepButton: {
     backgroundColor: Colors.green,
-    borderRadius: 20,
+    borderRadius: 14,
     paddingVertical: 20,
     alignItems: 'center',
   },

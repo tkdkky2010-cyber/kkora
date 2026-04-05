@@ -2,7 +2,7 @@ export const AppConfig = {
   // 챌린지 시간 (24시간 기준)
   challenge: {
     startHour: 22,       // 밤 10시
-    endHour: 24,         // 자정 12시
+    endHour: 0,          // 자정 12시 (다음날 0시)
     durationHours: 7,    // 7시간 수면
     settlementHour: 7,   // 아침 7시 정산
   },

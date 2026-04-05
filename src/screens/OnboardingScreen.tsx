@@ -14,7 +14,7 @@ import { Button } from '../components/atoms/Button';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
 import { RootStackParamList } from '../types/navigation';
-import { markOnboardingDone } from '../app/AppNavigator';
+import { markOnboardingDone } from '../navigation/AppNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 
@@ -75,7 +75,7 @@ export default function OnboardingScreen() {
 
   const renderSlide = ({ item }: { item: OnboardingSlide }) => (
     <View style={styles.slide}>
-      <Text style={{ fontSize: 80, marginBottom: 24 }}>{item.emoji}</Text>
+      <Text variant="largeNumber" style={{ marginBottom: Spacing.screenPadding }}>{item.emoji}</Text>
       <Text variant="h1" style={{ textAlign: 'center', lineHeight: 38, marginBottom: 16 }}>
         {item.title}
       </Text>

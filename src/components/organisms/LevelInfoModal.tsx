@@ -40,7 +40,11 @@ export function LevelInfoModal({
         <Pressable style={styles.content} onPress={() => {}}>
           <View style={styles.header}>
             <Text variant="h2">레벨 시스템</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={{ width: 44, height: 44, justifyContent: 'center', alignItems: 'center' }}
+            >
               <Ionicons name="close" size={24} color={Colors.textPrimary} />
             </TouchableOpacity>
           </View>

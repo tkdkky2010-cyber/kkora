@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootStackParamList } from '../types/navigation';
 import { Colors } from '../constants/colors';
 import { useAuth } from '../contexts/AuthContext';
+// syncServerTime은 AuthContext에서 로그인 후 호출됨
 
 import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
@@ -15,6 +16,8 @@ import ResultScreen from '../screens/ResultScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ChargeScreen from '../screens/ChargeScreen';
+import WithdrawScreen from '../screens/WithdrawScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -31,18 +34,25 @@ const backHeaderOptions = {
   headerShown: true,
   headerTransparent: true,
   headerTitle: '',
+  headerBackTitle: ' ',
   headerTintColor: Colors.textPrimary,
+  headerBackTitleVisible: false as boolean,
+  headerStyle: { backgroundColor: 'transparent' },
 };
 
 export default function AppNavigator() {
   const { user, loading } = useAuth();
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
+  const setOnboardingDoneRef = useRef(setOnboardingDone);
+  setOnboardingDoneRef.current = setOnboardingDone;
+
   useEffect(() => {
     AsyncStorage.getItem(ONBOARDING_KEY).then((value) => {
       setOnboardingDone(value === 'true');
     });
-    setOnboardingDoneSetter(setOnboardingDone);
+    // 콜백 등록
+    _setOnboardingDoneRef = setOnboardingDoneRef;
   }, []);
 
   // 로딩 중
@@ -54,40 +64,43 @@ export default function AppNavigator() {
     );
   }
 
-  return (
-    <Stack.Navigator screenOptions={screenOptions}>
-      {!onboardingDone ? (
-        // 최초 실행: 온보딩
+  // 인증/온보딩 상태에 따라 Navigator를 조건부 렌더링
+  // 상태 변경 시 Navigator가 완전히 리마운트되어 initialRouteName이 정확히 적용됨
+  if (!onboardingDone) {
+    return (
+      <Stack.Navigator screenOptions={screenOptions}>
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-      ) : null}
+      </Stack.Navigator>
+    );
+  }
 
-      {!user ? (
-        // 미로그인: 로그인 화면
+  if (!user) {
+    return (
+      <Stack.Navigator screenOptions={screenOptions}>
         <Stack.Screen name="Login" component={LoginScreen} />
-      ) : null}
+      </Stack.Navigator>
+    );
+  }
 
-      {/* 메인 플로우 (로그인 후) */}
+  return (
+    <Stack.Navigator screenOptions={screenOptions} initialRouteName="Home">
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Checklist" component={ChecklistScreen} options={backHeaderOptions} />
       <Stack.Screen name="Challenge" component={ChallengeScreen} />
       <Stack.Screen name="Result" component={ResultScreen} />
-
-      {/* 프로필 플로우 */}
       <Stack.Screen name="Profile" component={ProfileScreen} options={backHeaderOptions} />
       <Stack.Screen name="History" component={HistoryScreen} options={backHeaderOptions} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={backHeaderOptions} />
+      <Stack.Screen name="Charge" component={ChargeScreen} options={backHeaderOptions} />
+      <Stack.Screen name="Withdraw" component={WithdrawScreen} options={backHeaderOptions} />
     </Stack.Navigator>
   );
 }
 
-// 온보딩 완료 표시용 콜백 (AppNavigator에서 주입)
-let _setOnboardingDone: ((val: boolean) => void) | null = null;
-
-export function setOnboardingDoneSetter(setter: (val: boolean) => void) {
-  _setOnboardingDone = setter;
-}
+// 온보딩 완료 표시용 콜백 (ref로 안전하게 관리)
+let _setOnboardingDoneRef: React.MutableRefObject<(val: boolean) => void> | null = null;
 
 export async function markOnboardingDone() {
   await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-  _setOnboardingDone?.(true);
+  _setOnboardingDoneRef?.current?.(true);
 }

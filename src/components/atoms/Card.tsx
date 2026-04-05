@@ -1,15 +1,29 @@
 import React from 'react';
-import { View, ViewProps, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, ViewProps, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 
-interface CardProps extends ViewProps {
+interface CardProps {
   children: React.ReactNode;
+  style?: ViewProps['style'];
+  onPress?: () => void;
 }
 
-export function Card({ children, style, ...rest }: CardProps) {
+export function Card({ children, style, onPress }: CardProps) {
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        style={[styles.card, style]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        {children}
+      </TouchableOpacity>
+    );
+  }
+
   return (
-    <View style={[styles.card, style]} {...rest}>
+    <View style={[styles.card, style]}>
       {children}
     </View>
   );

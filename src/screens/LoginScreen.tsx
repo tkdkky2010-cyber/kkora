@@ -26,8 +26,8 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={{ fontSize: 64, marginBottom: 16 }}>🌙</Text>
-        <Text variant="h1" color={Colors.green} style={{ marginBottom: 8 }}>꺼라</Text>
+        <Text variant="largeNumber" style={{ marginBottom: Spacing.cardGap }}>🌙</Text>
+        <Text variant="h1" color={Colors.green} style={{ marginBottom: Spacing.elementGap }}>꺼라</Text>
         <Text variant="body" color={Colors.textSub} style={{ textAlign: 'center' }}>
           폰을 끄면 돈을 번다{'\n'}
           카카오 계정으로 시작하세요

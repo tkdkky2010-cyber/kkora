@@ -12,7 +12,7 @@ interface LevelBadgeProps {
   size?: 'small' | 'large';
 }
 
-export function LevelBadge({ level, streak, playerNumber = 247, size = 'large' }: LevelBadgeProps) {
+export function LevelBadge({ level, streak, playerNumber = 0, size = 'large' }: LevelBadgeProps) {
   const isLarge = size === 'large';
   const isNumberPhase = level.requiredDays === 0;
 
