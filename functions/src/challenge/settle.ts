@@ -160,7 +160,14 @@ export const settleChallenge = functions
             const userData = userDoc.data()!;
             const newStreak = (userData.streak || 0) + 1;
             const newMaxStreak = Math.max(newStreak, userData.maxStreak || 0);
-            const newLevel = getLevelByStreak(newMaxStreak);
+            // 레벨: streak 기반으로 계산하되, 강등된 레벨보다 높으면 복구
+            // CLAUDE.md: "복귀해서 다시 해당 일수 채우면 레벨 복구"
+            const streakLevel = getLevelByStreak(newStreak);
+            const currentLevel = userData.level || '참가자';
+            const streakIdx = LEVEL_THRESHOLDS.findIndex((l) => l.name === streakLevel);
+            const currentIdx = LEVEL_THRESHOLDS.findIndex((l) => l.name === currentLevel);
+            // streak으로 달성 가능한 레벨이 현재보다 높으면 승급, 아니면 유지
+            const newLevel = streakIdx >= currentIdx ? streakLevel : currentLevel;
 
             tx.update(userRef, {
               balance: admin.firestore.FieldValue.increment(userAmount + earnings),

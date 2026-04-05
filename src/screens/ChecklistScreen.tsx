@@ -26,6 +26,7 @@ import { RootStackParamList } from '../types/navigation';
 import { startChallenge } from '../services/firebase/functions';
 import { useAuth } from '../contexts/AuthContext';
 import { useChallenge } from '../contexts/ChallengeContext';
+import { useUserProfile } from '../hooks/useUserProfile';
 import { getTimeDriftMinutes, isServerTimeSynced } from '../utils/serverTime';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Checklist'>;
@@ -84,6 +85,9 @@ export default function ChecklistScreen() {
   const navigation = useNavigation<Nav>();
   const { user } = useAuth();
   const { startChallenge: startChallengeContext } = useChallenge();
+  const { userData } = useUserProfile();
+  const freeTrialDaysLeft = userData?.freeTrialDaysLeft ?? 0;
+  const isFreePlay = freeTrialDaysLeft > 0;
   const { width: screenWidth } = useWindowDimensions();
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [selectedAmount, setSelectedAmount] = useState(1000);
@@ -353,10 +357,21 @@ export default function ChecklistScreen() {
 
         {/* 금액 선택 */}
         <Text variant="h2" style={{ marginBottom: 12 }}>참여 금액</Text>
-        <AmountSelector
-          selectedAmount={selectedAmount}
-          onSelect={setSelectedAmount}
-        />
+        {isFreePlay ? (
+          <Card style={{ borderColor: Colors.green + '40' }}>
+            <Text variant="body" color={Colors.green} style={{ fontWeight: '600' }}>
+              무료 체험 ({freeTrialDaysLeft}일 남음)
+            </Text>
+            <Text variant="caption" color={Colors.textSub} style={{ marginTop: 4 }}>
+              무료 포인트로 참여합니다. 금액 선택 없이 바로 시작하세요!
+            </Text>
+          </Card>
+        ) : (
+          <AmountSelector
+            selectedAmount={selectedAmount}
+            onSelect={setSelectedAmount}
+          />
+        )}
 
         {/* 체크리스트 */}
         <Text variant="h2" style={{ marginTop: Spacing.sectionGap, marginBottom: 12 }}>

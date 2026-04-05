@@ -41,6 +41,7 @@ export default function ResultScreen() {
 
   const [result, setResult] = useState<ChallengeResult | null>(null);
   const [challengeDate, setChallengeDate] = useState<string | null>(null);
+  const [isFreePlay, setIsFreePlay] = useState(false);
   const [poolData, setPoolData] = useState({ survivors: 0, totalParticipants: 0 });
   const [streak, setStreak] = useState(0);
   const [playerNumber, setPlayerNumber] = useState(0);
@@ -68,6 +69,7 @@ export default function ResultScreen() {
 
           setResult({ isSuccess, amount: data.amount || 0, earnings: data.earnings || 0, sleepDuration });
           if (data.date) setChallengeDate(data.date);
+          setIsFreePlay(!!data.isFreePlay);
           if (isSuccess) setShowConfetti(true);
         } else {
           setError('결과를 찾을 수 없습니다.');
@@ -208,6 +210,24 @@ export default function ResultScreen() {
                 </Text>
               )}
             </Card>
+
+            {/* 무료 체험 가상 수익 메시지 */}
+            {isFreePlay && r.isSuccess && poolData.totalParticipants > poolData.survivors && (
+              <Card style={{ marginBottom: Spacing.cardGap, borderColor: Colors.gold + '40' }}>
+                <Text variant="caption" color={Colors.gold} style={{ fontWeight: '600' }}>
+                  만약 1,000원을 걸었다면?
+                </Text>
+                <Text variant="h2" color={Colors.gold} style={{ marginTop: 4 }}>
+                  +{Math.round(
+                    ((poolData.totalParticipants - poolData.survivors) * 1000 * 0.8) /
+                    (poolData.survivors > 0 ? poolData.survivors : 1)
+                  ).toLocaleString()}원을 받았을 거예요!
+                </Text>
+                <Text variant="caption" color={Colors.textSub} style={{ marginTop: Spacing.elementGap }}>
+                  무료 체험이 끝나면 실제로 돈을 벌 수 있어요
+                </Text>
+              </Card>
+            )}
 
             {/* 전투 결과 */}
             <Card style={{ marginBottom: Spacing.cardGap }}>

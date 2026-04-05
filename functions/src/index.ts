@@ -12,6 +12,11 @@ import { requestWithdrawal } from './payment/withdraw';
 import { onUserCreate } from './user/create';
 import { deleteUser } from './user/delete';
 
+// Notification
+import { sendReminder } from './notification/reminder';
+import { sendResultNotification } from './notification/result';
+import { sendInactiveReminder } from './notification/inactive';
+
 export {
   // Challenge
   startChallenge,
@@ -24,4 +29,8 @@ export {
   // User
   onUserCreate,
   deleteUser,
+  // Notification
+  sendReminder,
+  sendResultNotification,
+  sendInactiveReminder,
 };

@@ -1,11 +1,35 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { getKSTNow } from '../utils/time';
 
 if (!admin.apps.length) {
   admin.initializeApp();
 }
 
 const db = admin.firestore();
+
+// 레벨 강등용
+const LEVEL_THRESHOLDS = [
+  '참가자', '생존자', '상위 50%', '상위 20% 🥈',
+  '상위 5% 🥇', '상위 1% 💎', 'VIP 🃏', '호스트 👁️',
+];
+
+function demoteLevel(currentLevel: string): string {
+  const idx = LEVEL_THRESHOLDS.indexOf(currentLevel);
+  if (idx <= 0) return LEVEL_THRESHOLDS[0];
+  return LEVEL_THRESHOLDS[idx - 1];
+}
+
+function getWeekStartDate(): string {
+  const now = getKSTNow();
+  const day = now.getUTCDay();
+  const diff = day === 0 ? 6 : day - 1;
+  const monday = new Date(now.getTime() - diff * 24 * 60 * 60 * 1000);
+  const y = monday.getUTCFullYear();
+  const m = String(monday.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(monday.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 const VALID_REASONS = [
   'app_exit',
@@ -71,9 +95,35 @@ export const reportFailure = functions
         failures: admin.firestore.FieldValue.increment(1),
       });
 
-      // streak 리셋
+      // streak 리셋 + 주간 2회 실패 시 레벨 강등
       const userRef = db.collection('users').doc(userId);
-      tx.update(userRef, { streak: 0 });
+      const userDoc = await tx.get(userRef);
+      const userData = userDoc.exists ? userDoc.data()! : null;
+
+      const updateData: Record<string, any> = { streak: 0 };
+
+      if (userData) {
+        // 주간 실패 카운트를 유저 문서에 직접 관리 (트랜잭션 안전)
+        const currentWeekStart = getWeekStartDate();
+        const userWeekStart = userData.weekStartDate || '';
+        let weeklyFailures = userData.weeklyFailures || 0;
+
+        if (userWeekStart !== currentWeekStart) {
+          // 새 주 시작 → 카운터 리셋
+          weeklyFailures = 1;
+          updateData.weekStartDate = currentWeekStart;
+        } else {
+          weeklyFailures += 1;
+        }
+        updateData.weeklyFailures = weeklyFailures;
+
+        // 같은 주 2회 이상 실패 → 1단계 강등
+        if (weeklyFailures >= 2) {
+          updateData.level = demoteLevel(userData.level || '참가자');
+        }
+      }
+
+      tx.update(userRef, updateData);
     });
 
     return { success: true };

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +11,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '../components/atoms/Text';
 import { Card } from '../components/atoms/Card';
+import { Badge } from '../components/atoms/Badge';
 import { LevelIcon } from '../components/atoms/LevelIcon';
 import { LevelInfoModal } from '../components/organisms/LevelInfoModal';
 import { Colors } from '../constants/colors';
@@ -72,11 +74,14 @@ export default function HomeScreen() {
 
   const streak = userData?.streak ?? 0;
   const playerNumber = userData?.playerNumber ?? 0;
+  const freeTrialDaysLeft = userData?.freeTrialDaysLeft ?? 0;
   const level = getLevelByStreak(streak);
   const isNumberPhase = level.requiredDays === 0;
   const levelName = isNumberPhase
     ? level.name.replace('???', String(playerNumber))
     : level.name;
+
+  const shownConversionPopup = useRef(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -84,6 +89,21 @@ export default function HomeScreen() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // 4일차 유료 전환 유도 팝업
+  useEffect(() => {
+    if (userData && freeTrialDaysLeft === 0 && (userData.balance ?? 0) === 0 && !shownConversionPopup.current) {
+      shownConversionPopup.current = true;
+      Alert.alert(
+        '무료 체험이 끝났어요!',
+        '이제 실제로 돈을 벌어보세요.\n잔액을 충전하고 챌린지에 참여하세요.',
+        [
+          { text: '나중에', style: 'cancel' },
+          { text: '충전하기', onPress: () => navigation.navigate('Charge') },
+        ],
+      );
+    }
+  }, [userData, freeTrialDaysLeft, navigation]);
 
   // Firestore dailyPool 실시간 구독
   useEffect(() => {
@@ -136,6 +156,23 @@ export default function HomeScreen() {
             </Text>
           )}
         </View>
+
+        {/* 무료 체험 배너 */}
+        {freeTrialDaysLeft > 0 && (
+          <Card style={{ marginBottom: Spacing.cardGap, borderColor: Colors.green + '40' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View>
+                <Text variant="body" color={Colors.green} style={{ fontWeight: '600' }}>
+                  무료 체험 중
+                </Text>
+                <Text variant="caption" color={Colors.textSub} style={{ marginTop: 2 }}>
+                  {freeTrialDaysLeft}일 남음 — 무료로 챌린지에 참여하세요
+                </Text>
+              </View>
+              <Badge label={`${freeTrialDaysLeft}일`} color={Colors.green} />
+            </View>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <View style={styles.statsRow}>
