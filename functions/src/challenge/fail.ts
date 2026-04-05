@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { getKSTNow } from '../utils/time';
+import { checkRateLimit } from '../utils/security';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -56,6 +57,12 @@ export const reportFailure = functions
 
     const userId = context.auth.uid;
     const { challengeId, reason } = data;
+
+    // Rate limiting (3초 간격)
+    const allowed = await checkRateLimit(db, userId, 'reportFailure', 3000);
+    if (!allowed) {
+      throw new functions.HttpsError('resource-exhausted', '요청이 너무 빠릅니다.');
+    }
 
     if (!challengeId) {
       throw new functions.HttpsError('invalid-argument', '챌린지 ID가 필요합니다.');

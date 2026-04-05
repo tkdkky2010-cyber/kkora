@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { getKSTHour, getKSTDateString, getKSTDay } from '../utils/time';
+import { checkRateLimit } from '../utils/security';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -28,6 +29,12 @@ export const startChallenge = functions
 
     const userId = context.auth.uid;
     const { amount } = data;
+
+    // Rate limiting (5초 간격)
+    const allowed = await checkRateLimit(db, userId, 'startChallenge', 5000);
+    if (!allowed) {
+      throw new functions.HttpsError('resource-exhausted', '요청이 너무 빠릅니다.');
+    }
 
     // 금액 검증
     if (!VALID_AMOUNTS.includes(amount)) {
@@ -67,7 +74,7 @@ export const startChallenge = functions
       const userData = userDoc.data()!;
       const isFreePlay = userData.freeTrialDaysLeft > 0;
 
-      // 무료 ��험이 아닌 경우 잔액 확인
+      // 무료 체험이 아닌 경우 잔액 확인
       if (!isFreePlay && userData.balance < amount) {
         throw new functions.HttpsError(
           'failed-precondition',

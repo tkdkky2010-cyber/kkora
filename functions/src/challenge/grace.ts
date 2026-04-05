@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
+import { checkRateLimit } from '../utils/security';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -22,6 +23,12 @@ export const reportGrace = functions
 
     const userId = context.auth.uid;
     const { challengeId, result, exitTimeMs } = data;
+
+    // Rate limiting (2초 간격)
+    const allowed = await checkRateLimit(db, userId, 'reportGrace', 2000);
+    if (!allowed) {
+      throw new functions.HttpsError('resource-exhausted', '요청이 너무 빠릅니다.');
+    }
 
     if (!challengeId || !['returned', 'failed'].includes(result)) {
       throw new functions.HttpsError('invalid-argument', '잘못된 요청입니다.');
