@@ -50,6 +50,7 @@ export async function createUserDoc(userId: string, data: {
   deviceId: string;
 }) {
   const docRef = doc(db, 'users', userId);
+  const playerNumber = Math.floor(Math.random() * 100000) + 1;
   await setDoc(docRef, {
     ...data,
     balance: 0,
@@ -58,6 +59,7 @@ export async function createUserDoc(userId: string, data: {
     maxStreak: 0,
     level: '참가자',
     totalEarnings: 0,
+    playerNumber,
     createdAt: serverTimestamp(),
     lastActiveAt: serverTimestamp(),
   });

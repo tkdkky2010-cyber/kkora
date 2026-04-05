@@ -48,7 +48,7 @@ export const settleChallenge = functions
     }
 
     const pool = poolDoc.data()!;
-    const feeRate = pool.feeRate || 0.2;
+    const feeRate = pool.feeRate ?? 0.2;
 
     // 2. 쿼리 먼저 실행 (settled 플래그 설정 전)
     const activeQuery = await db

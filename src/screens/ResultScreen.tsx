@@ -9,6 +9,7 @@ import { subscribeDailyPool } from '../services/firebase/firestore';
 import ConfettiCannon from 'react-native-confetti-cannon';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import { AnalyticsEvents } from '../services/analytics';
 import { Text } from '../components/atoms/Text';
 import { Button } from '../components/atoms/Button';
 import { Card } from '../components/atoms/Card';
@@ -112,10 +113,15 @@ export default function ResultScreen() {
       const uri = await viewShotRef.current.capture();
       const isAvailable = await Sharing.isAvailableAsync();
       if (isAvailable) {
-        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: '꺼라 생존 카드 공유' });
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: '꺼라 생존 카드 공유',
+          UTI: 'public.png',
+        });
+        AnalyticsEvents.shareCard();
       }
     } catch {
-      // 공유 실패 무시
+      // 공유 실패 무시 — 권한 거부 등
     }
   };
 
