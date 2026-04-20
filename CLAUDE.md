@@ -4,6 +4,27 @@
 
 ---
 
+## ⚠️ 미결 사항 (Open Questions)
+
+아래 항목은 **출시 전 반드시** 확정해야 하며, 결정 전까지는 관련 기능 구현을 보류한다.
+
+| # | 항목 | 리스크 | 결정 시한 | 담당 |
+|---|---|---|---|---|
+| 1 | **Apple IAP vs 외부 결제** | iOS 앱스토어 정책상 "디지털 재화"는 IAP 강제(수수료 30%). "실물 환급 가능한 예치금"은 외부 결제 허용 가능성 있으나 심사 리젝 리스크 존재. 애플 판단에 따라 수익 모델 붕괴 가능. | **출시 4주 전** (심사 제출 전) | 본인 + 앱스토어 심사팀 문의 |
+| 2 | **전자금융거래법 해당 여부** | 선불전자지급수단 발행업(예치금) 등록 대상이면 자본금 20억 필요. 카카오페이 PG 경유 시 면제 가능성 있으나 법률 자문 필수. | **개발 6주차 시작 전** (결제 코드 작성 전) | 법무법인 자문 |
+| 3 | **사행산업통합감독위원회 해석** | "수면 성공 시 금전 환급"이 게임산업법·사행행위법상 "베팅/도박"으로 판정되면 앱 전체 불법. "챌린지/현상광고"로 분류되어야 함. | **출시 4주 전** | 법률 자문 + 문체부 유권해석 요청 |
+| 4 | **카카오페이 PG 가맹점 심사 통과** | 수면 챌린지 앱이 카카오페이 가맹 정책(도박·사행성 차단 조항)에 걸릴 수 있음. | **개발 6주차** | 카카오페이 파트너센터 선협의 |
+
+**규칙**
+- 이 섹션이 비어있을 때까지 `functions/src/payment/**` 실배포 금지
+- 결정 사항은 이 표에 기록 후 하단 "결정 이력"에 사유 포함하여 이관
+- 법률 자문 결과는 `docs/legal/` 폴더에 PDF로 보관
+
+**결정 이력**
+- _(아직 없음)_
+
+---
+
 ## 프로젝트 개요
 
 - **앱 이름**: 꺼라
@@ -119,6 +140,14 @@
 
 ### 타이포그래피
 
+**폰트 패밀리**
+- **한글**: Pretendard Variable (GitHub OFL 라이선스, 상업 사용 가능)
+  - 번들 방식: `expo-font` + `assets/fonts/PretendardVariable.woff2`
+  - 대체 폰트: `system-ui, -apple-system, sans-serif` (로드 실패 시)
+- **영문/숫자**: 시스템 폰트 (`-apple-system` iOS, `Roboto` Android) — 금액/타이머 가독성 최우선
+- **금지**: Inter, Noto Sans, Roboto를 한글에 강제 사용하지 말 것
+
+**크기 / 굵기**
 ```
 최대 숫자 (금액/시간):  48px, weight 900
 제목 (H1):             28px, weight 900
@@ -168,6 +197,54 @@
 - ❌ 체계 없는 색상 추가
 - ❌ 장식 목적의 아이콘 남발
 - ❌ Inter, Roboto, Arial 같은 기본 폰트
+
+---
+
+## 앱 상수 (Config)
+
+모든 값은 `src/constants/config.ts` (클라이언트) 및 `functions/src/utils/config.ts` (서버)에 **중앙화**한다. 변경 시 양쪽 동시 수정 필수.
+
+```ts
+// 챌린지 시간
+challenge.startHour           = 22        // 밤 10시 (KST)
+challenge.endHour             = 0         // 자정 (KST, 다음날 00:00)
+challenge.durationHours       = 7         // 수면 시간
+challenge.settlementHour      = 7         // 아침 7시 정산
+
+// 유예 (Grace)
+grace.maxCount                = 3         // 최대 유예 횟수
+grace.durationSeconds         = 60        // 1회당 유예 시간 (초)
+
+// Heartbeat (이탈 감지)
+heartbeat.intervalSeconds     = 30        // 클라이언트 ping 주기
+heartbeat.serverTimeoutSeconds = 120      // 서버가 이탈로 판정하는 무응답 시간
+
+// 참여 금액 (원)
+amounts                       = [1000, 5000, 10000]      // 출시 초기
+maxAmount                     = 10000                    // 확장 전 상한
+// 확장 로드맵: 30000, 50000 추가 예정 (법률 검토 후)
+
+// 예치금 충전 (원)
+chargeAmounts                 = [5000, 10000, 30000, 50000]
+
+// 수수료
+fee.normalRate                = 0.2       // 미환급액의 20%
+fee.fridayRate                = 0.0       // 금요일 밤의 대학살
+
+// 무료 체험
+freeTrial.days                = 3         // 신규 가입 3일
+
+// 출금
+withdrawal.minAmount          = 3000      // 최소 출금액
+
+// 알림
+notification.reminderHour     = 21
+notification.reminderMinute   = 30        // 밤 9:30 리마인더
+notification.resultHour       = 7         // 아침 7시 결과
+
+// 시간 허용 오차
+timeDriftMaxMinutes           = 5         // 서버/로컬 시간 차이 한계
+```
 
 ---
 
@@ -247,6 +324,70 @@
 - 토글 ON/OFF (기본 OFF)
 - 남은 시간 + 생존자 수 표시
 
+### 챌린지 감지 메커니즘 (기술 스펙)
+
+**AppState 기준 이탈 정의**
+- `active → background` **전환만** 이탈로 판정
+- `active → inactive` (전화 수신, 알림센터 pull-down 등): **면제** (Apple/Google OS 동작)
+- `background → active` 복귀: 유예 종료로 간주, 60초 이내 복귀 시 gracesUsed +1
+
+**면제 규칙 (이탈로 카운트하지 않음)**
+| 이벤트 | iOS | Android | 처리 |
+|---|---|---|---|
+| 화면 잠금 (전원 버튼) | inactive | onPause만, AppState 유지 | 면제 |
+| 전화 수신 (통화) | inactive | inactive | 면제 (CallKit / TelephonyManager 감지) |
+| 시스템 알림 (SMS, 알람) | inactive | active 유지 | 면제 |
+| 음악 재생 (백그라운드) | background | background | **이탈로 처리** (사전 고지) |
+| 앱 스위처 열기 | inactive | inactive | 면제 |
+| 다른 앱 실행 | background | background | **이탈** → 60초 타이머 시작 |
+| 시스템 업데이트 알림 dismiss | inactive | inactive | 면제 |
+
+**Heartbeat**
+- 주기: **30초**마다 클라이언트가 Cloud Function `pingChallenge` 호출
+- 저장: `heartbeats/{challengeId}_{timestamp}` (또는 RTDB `heartbeats/{challengeId}`로 비용 최적화)
+- 서버 타임아웃: **120초** 동안 heartbeat 없으면 `failChallenge(reason: 'heartbeat_lost')` 자동 실행
+- 네트워크 끊김 유예: 최대 2분까지는 기다렸다가 실패 처리 (사용자 Wi-Fi 일시 끊김 보호)
+
+**면제 예외 정책 (이탈로 처리하지 않는 물리적 사건)**
+- **앱 강제 종료(kill swipe)**: 이탈로 처리 (사용자 의도 명확)
+- **OS 자체 종료 (메모리 부족)**: 복귀 후 10초 이내 재접속 시 유예 1회 소모, 초과 시 실패
+- **배터리 방전**: 배터리 0% → 재충전 후 복귀 시 `challenges/{id}.failReason = 'battery_drained'`, **참여금 환불** (단, 시작 시 배터리 50% 이상 체크 통과자에 한함)
+- **앱 크래시**: Crashlytics 로그와 heartbeat 시각 대조 → 크래시 인증 시 유예 1회 소모, 2회차부터는 실패
+- **기기 재부팅**: `background → terminated` 동일 취급, 이탈로 처리
+
+**서버 측 최종 판정 (정산 시)**
+1. heartbeat 마지막 시각 → 이탈 시점 확정
+2. graceLogs 합산 → 남은 횟수 검증
+3. Crashlytics 이벤트 크로스체크 → 예외 사유 확인
+4. 불일치 시 `disputes` 컬렉션에 자동 기록 → 수동 검토
+
+### 엣지 케이스 규칙
+
+**참여자 수 기반**
+- **참여자 1명**: 풀 혼자 차지, 수수료 0% 적용, 원금 100% + "오늘은 나밖에 없음" 메시지
+- **전원 성공**: 미환급액 = 0, 수수료/상금 없음, 원금만 100% 환급, "전원 생존" 뱃지
+- **전원 실패**: 전액 플랫폼 귀속 (수수료 20%), 다음 날 풀 시드머니로 사용하지 않음
+
+**금액 분배 엣지**
+- **상금 원단위 미만**: 내림 처리, 잔액은 플랫폼에 귀속 (감사 로그 기록)
+- **참여자 2명 중 1명 성공, 금액 동일**: 패자 참여금 전액 → 수수료 공제 후 승자 단독 수령
+- **참여자 2명 중 1명 성공, 금액 상이**: 승자가 큰 금액이어도 상금은 `패자 참여금의 80%` (비율 무관)
+
+**정산 엣지**
+- **아침 7시 정산 크론 실패**: 재시도 3회, 실패 시 Sentry 알림 + 수동 정산 대기
+- **정산 중 Firestore 장애**: 트랜잭션 롤백 후 5분 재시도, 1시간 경과 시 운영자 개입
+- **정산 완료 후 버그 발견**: `challenges/{id}.settled = true` 잠금, 수정은 `disputes` 플로우로만
+
+**네트워크/클라이언트**
+- **챌린지 중 인터넷 끊김**: heartbeat 타임아웃(120초) 이내 복구 시 유예 유지, 초과 시 실패 (단, 분쟁 제기 가능)
+- **앱 강제 업데이트 필요**: 챌린지 진행 중 차단 금지, 종료 후 다음 참여 시 업데이트 강제
+- **서버 시간 sync 실패**: 챌린지 시작 차단, "시간 확인 중" 토스트 → 재시도
+
+**결제 엣지**
+- **충전 중 네트워크 끊김**: PG 콜백 수신 전 사용자 앱 종료 → 재접속 시 `paymentStatus` 폴링으로 복구
+- **PG는 성공했으나 Firestore balance 업데이트 실패**: `transactions` 컬렉션의 `status='pg_ok_balance_fail'` 레코드 → 운영자 수동 보정
+- **출금 중 잔액 변동 (동시 챌린지 참여)**: 트랜잭션으로 출금 시점 잔액 재확인, 부족 시 출금 자동 취소
+
 ---
 
 ## MVP 화면 구조
@@ -300,6 +441,53 @@
 - 로컬과 서버 시간 차이 5분 이상 → 참여 차단
 - "자동 시간 설정" 비활성화 → 참여 차단
 
+### 치팅 방어 테이블
+
+| # | 공격 패턴 | 감지 방법 | 방어/처리 |
+|---|---|---|---|
+| 1 | **서브폰 사용** (메인폰은 잠들고 서브폰으로 놀기) | 앱 차원 감지 불가 | 사용자 자발성 전제 + 약관에 "본인 사용 기기 서약" |
+| 2 | **양쪽 베팅** (친구와 한명씩 성공/실패 분담) | 동일 IP/deviceId/결제계좌 패턴 탐지 | Firebase Analytics + `users.deviceId` 인덱스, 의심 계정 수동 검토 |
+| 3 | **비행기모드 유지** | heartbeat 무응답 감지 → 120초 타임아웃 | 자동 실패 처리, `failReason: 'heartbeat_lost'` |
+| 4 | **시간 조작** (기기 시계 변경) | 서버 시간과 로컬 시간 diff 체크 | 5분 이상 차이 시 참여 차단, 챌린지 중 발견 시 실패 |
+| 5 | **앱 리버스 엔지니어링** (클라이언트 조작) | — | 금융 로직 서버 only, 클라이언트 값 불신 |
+| 6 | **루팅/탈옥 기기** | `expo-device` + `jail-monk` 등 감지 라이브러리 | 감지 시 참여 차단 (선택적, Phase 2) |
+| 7 | **에뮬레이터 참여** | `expo-device.isDevice` 체크 | 참여 차단 |
+| 8 | **다계정 (카카오 ID 부계정)** | kakaoId + 카카오페이 계정 + deviceId 3중 체크 | 중복 시 가입 차단, 기존 계정 병합 유도 |
+| 9 | **챌린지 중 VPN 전환** | 서버에서 IP 변경 로그만 기록 | 단독 근거로는 실패 처리하지 않음 (정상 사용자 피해 방지) |
+| 10 | **자동 복귀 매크로** | grace 타이머 만료 직전 복귀 패턴 반복 감지 | 3회 연속 패턴 시 수동 검토 큐 추가 |
+| 11 | **Cloud Functions 직접 호출 우회** | Auth 토큰 검증 + Rate Limiting | 비인증 호출 거부, 초당 제한 초과 시 차단 |
+| 12 | **동시 여러 기기 로그인** | Firebase Auth 세션 추적 | 챌린지 진행 중엔 단일 세션만 허용 |
+
+### 분쟁 처리 프로세스
+
+**플로우**
+```
+[1] 사용자 이의 제기 (Settings → 1:1 문의 → "챌린지 판정 이의")
+    ↓ disputes/{disputeId} 생성 (status: 'open')
+[2] 자동 판정 (Cloud Function: autoJudgeDispute)
+    - heartbeats, graceLogs, Crashlytics 이벤트 조합 분석
+    - 명백한 근거가 있으면 autoJudgement 필드에 결과 기록
+    ↓ status: 'reviewing' (자동 판정 불가) 또는 'resolved_*' (자동 해결)
+[3] 수동 검토 (운영자, 24시간 이내)
+    - 자동 판정 결과 + 사용자 제출 증거 확인
+    - 필요 시 사용자에게 추가 자료 요청 (푸시 알림)
+    ↓
+[4] 최종 판정
+    - resolved_approve: 환불 → transactions 레코드 생성 (type: 'adjustment')
+    - resolved_reject: 거부 사유 사용자에게 전송
+    - escalated: CS 팀 2차 검토 (복잡한 케이스)
+```
+
+**SLA**
+- 자동 판정: 즉시 (Cloud Function trigger)
+- 수동 검토 응답: **24시간 이내** (영업일 기준)
+- 최종 해결: 접수 후 **72시간 이내**
+
+**자동 환불 트리거 (disputes 없이 즉시 환불)**
+- 배터리 방전 + 시작 시 50% 이상 통과 확인
+- Crashlytics 크래시 이벤트 + heartbeat 단절 시각 일치
+- Firestore 장애 로그 시점에 정산 실패
+
 ---
 
 ## 기술 스택
@@ -317,6 +505,45 @@
 코드 품질:      ESLint + Prettier
 테스트:         Jest + React Native Testing Library
 ```
+
+---
+
+## Firebase 비용 최적화 메모
+
+챌린지 특성상 **동시 참여자 수 × 30초 heartbeat**가 전체 비용을 지배한다. 초기 설계부터 최적화 필수.
+
+### Firestore vs RTDB 용도 분리
+
+| 데이터 | 저장소 | 이유 |
+|---|---|---|
+| users, challenges, transactions, disputes, dailyPool | **Firestore** | 트랜잭션·쿼리·인덱스 필요 |
+| **heartbeats** | **RTDB** (Realtime Database) | 30초 간격 덮어쓰기 → Firestore 쓰기 요금(1건당 $0.18/10만건) 압도적 불리, RTDB는 대역폭 과금 |
+| graceLogs | Firestore | 영구 보관, 분쟁 시 증거 |
+
+**예상 비용 비교 (1,000명 동시 참여, 7시간)**
+- Firestore만 사용: 1,000명 × 7시간 × 120회/시간 = **840,000 writes/night** → 약 $1.5/일
+- RTDB로 heartbeat 분리: 대역폭 약 50MB/일 → 약 **$0.05/일** (30배 절감)
+
+### 쿼리 최적화 규칙
+- 정산 함수(`settleDailyPool`)는 `dailyPool.settled == false` 필터 + `limit(500)` 배치 처리
+- 헤비 쿼리에는 복합 인덱스 필수 (firestore.indexes.json 관리)
+- 실시간 리스너는 화면 활성화 시에만, `onSnapshot` 언마운트 시 즉시 해제
+- **`.get()` 남발 금지** — 리스트 화면은 페이지네이션(20개)
+
+### Cloud Functions 최적화
+- `region: 'asia-northeast3'` (서울) 고정 → 한국 유저 지연 최소 + 데이터 전송 비용 절감
+- 동시 실행(minInstances): 0 (콜드 스타트 감수), 정산 크론만 warm up
+- 함수 timeout: 60초 기본, 정산 함수만 540초
+- 메모리: 256MB 기본, 정산 함수만 1GB
+
+### Cloud Storage
+- 분쟁 증거 스크린샷만 저장, 생명주기 규칙: 90일 후 자동 삭제
+- 사용자당 업로드 10MB 제한
+
+### 모니터링
+- Firebase 사용량 알림: 일일 예산 초과 시 SMS
+- Crashlytics 크래시율 > 1% 시 Slack 알림
+- Cloud Functions 에러율 > 5% 시 Sentry 알림
 
 ---
 
@@ -505,6 +732,39 @@ graceLogs/{logId}
   ├── returnTime: timestamp | null
   ├── duration: number (seconds)
   └── result: 'returned' | 'failed'
+
+transactions/{txId}                ← 돈 흐름 전수 추적 (CS/감사 필수)
+  ├── userId: string
+  ├── type: 'deposit' | 'withdraw' | 'challenge_bet' | 'challenge_refund' | 'prize' | 'fee' | 'adjustment'
+  ├── amount: number (원, 음수 가능 — 차감은 -)
+  ├── balanceBefore: number        ← 트랜잭션 직전 잔액
+  ├── balanceAfter: number         ← 트랜잭션 직후 잔액
+  ├── relatedId: string | null     ← challengeId 또는 paymentId 등
+  ├── status: 'pending' | 'success' | 'failed' | 'pg_ok_balance_fail' | 'reversed'
+  ├── pgResponse: object | null    ← PG 원본 응답 (JSON)
+  ├── createdAt: timestamp
+  └── reason: string | null        ← 운영자 수동 조정 사유
+
+heartbeats/{challengeId}           ← RTDB 권장 (비용 최적화, Firebase 비용 메모 참조)
+  ├── userId: string
+  ├── lastPingAt: timestamp        ← 30초마다 덮어씀
+  ├── pingCount: number            ← 누적 ping 수
+  ├── appState: 'active' | 'background'
+  └── batteryLevel: number | null  ← 분쟁 증거용
+
+disputes/{disputeId}               ← 이의 제기 처리
+  ├── userId: string
+  ├── challengeId: string | null   ← 결제 분쟁은 null 가능
+  ├── type: 'challenge_result' | 'payment' | 'refund' | 'other'
+  ├── reason: string               ← 사용자 제출 내용
+  ├── evidence: string[] (URLs)    ← 스크린샷 등 Cloud Storage 경로
+  ├── status: 'open' | 'reviewing' | 'resolved_approve' | 'resolved_reject' | 'escalated'
+  ├── autoJudgement: object | null ← 자동 판정 결과 (heartbeat + crashlytics 조합)
+  ├── resolution: string | null    ← 운영자 최종 판정 사유
+  ├── refundAmount: number | null  ← 승인 시 환불 금액
+  ├── createdAt: timestamp
+  ├── respondedAt: timestamp | null
+  └── assignedTo: string | null    ← 담당 운영자 uid
 ```
 
 ---
