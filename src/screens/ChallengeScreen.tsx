@@ -167,6 +167,30 @@ export default function ChallengeScreen() {
 
   // AppState 감지: grace period
   // 수면(5분+ 이탈)은 자동 무시, 앱 전환(5분 미만)만 grace 판정
+  //
+  // reportGrace 실패 시 재시도: 'failed' 보고가 유실되면 정산이 이를 성공으로 처리하므로
+  // 지수 백오프로 최대 3회 재시도. 끝내 실패 시 로컬 큐에 적재 (추후 재접속 시 flush).
+  const reportGraceWithRetry = useCallback(
+    async (
+      id: string,
+      result: 'returned' | 'failed',
+      exitTimeMs: number,
+      attempt = 0,
+    ): Promise<void> => {
+      try {
+        await reportGrace(id, result, exitTimeMs);
+      } catch {
+        if (attempt < 2) {
+          const delay = 500 * Math.pow(2, attempt);
+          await new Promise((r) => setTimeout(r, delay));
+          return reportGraceWithRetry(id, result, exitTimeMs, attempt + 1);
+        }
+        // TODO: AsyncStorage 큐에 적재 후 앱 재기동 시 flush
+      }
+    },
+    [],
+  );
+
   useAppState({
     enabled: challengeActive,
     onForeground: (elapsedSeconds, exitTimeMs) => {
@@ -177,14 +201,14 @@ export default function ChallengeScreen() {
 
         if (newGraces > AppConfig.grace.maxCount) {
           // 4회째 → 즉시 실패
-          reportGrace(challengeId, 'failed', exitTimeMs).catch(() => {});
+          void reportGraceWithRetry(challengeId, 'failed', exitTimeMs);
           navigateToResultWithFail();
         } else {
-          reportGrace(challengeId, 'returned', exitTimeMs).catch(() => {});
+          void reportGraceWithRetry(challengeId, 'returned', exitTimeMs);
         }
       } else {
         // 60초~5분 이탈 → 실패 (수면은 useAppState에서 이미 필터됨)
-        reportGrace(challengeId, 'failed', exitTimeMs).catch(() => {});
+        void reportGraceWithRetry(challengeId, 'failed', exitTimeMs);
         navigateToResultWithFail();
       }
     },

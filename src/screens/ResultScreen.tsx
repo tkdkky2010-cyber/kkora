@@ -216,11 +216,11 @@ export default function ResultScreen() {
             {isFreePlay && r.isSuccess && poolData.totalParticipants > poolData.survivors && (
               <Card style={{ marginBottom: Spacing.cardGap, borderColor: Colors.gold + '40' }}>
                 <Text variant="caption" color={Colors.gold} style={{ fontWeight: '600' }}>
-                  만약 1,000원을 걸었다면?
+                  만약 {AppConfig.amounts[0].toLocaleString()}원을 걸었다면?
                 </Text>
                 <Text variant="h2" color={Colors.gold} style={{ marginTop: 4 }}>
                   +{Math.round(
-                    ((poolData.totalParticipants - poolData.survivors) * 1000 * (1 - AppConfig.fee.normalRate)) /
+                    ((poolData.totalParticipants - poolData.survivors) * AppConfig.amounts[0] * (1 - AppConfig.fee.normalRate)) /
                     (poolData.survivors > 0 ? poolData.survivors : 1)
                   ).toLocaleString()}원을 받았을 거예요!
                 </Text>

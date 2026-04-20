@@ -107,7 +107,13 @@ export const reportFailure = functions
       const userDoc = await tx.get(userRef);
       const userData = userDoc.exists ? userDoc.data()! : null;
 
-      const updateData: Record<string, any> = { streak: 0 };
+      interface UserFailUpdate {
+        streak: number;
+        weeklyFailures?: number;
+        weekStartDate?: string;
+        level?: string;
+      }
+      const updateData: UserFailUpdate = { streak: 0 };
 
       if (userData) {
         // 주간 실패 카운트를 유저 문서에 직접 관리 (트랜잭션 안전)

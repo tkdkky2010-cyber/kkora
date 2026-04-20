@@ -30,6 +30,12 @@ export function useTimer({
 }: UseTimerOptions): UseTimerResult {
   const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
   const completedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+
+  // onComplete 참조를 최신값으로 유지 — interval 재생성 방지
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -41,13 +47,13 @@ export function useTimer({
 
         if (remaining === 0 && !completedRef.current) {
           completedRef.current = true;
-          onComplete?.();
+          onCompleteRef.current?.();
         }
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [startTimeMs, totalSeconds, onComplete]);
+  }, [startTimeMs, totalSeconds]);
 
   return {
     remainingSeconds,

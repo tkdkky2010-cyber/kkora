@@ -11,12 +11,23 @@ const MAX_WITHDRAWAL = 1000000; // 1회 최대 100만원
 /**
  * 출금 신청 — Cloud Function
  * 실제 오픈뱅킹 API 연동 전까지는 잔액 차감 + 거래 기록만 (개발용).
+ *
+ * ⚠️ 프로덕션 배포 가드:
+ * process.env.ALLOW_MOCK_PAYMENT !== 'true' 이면 미연동 상태 호출을 거부한다.
  */
 export const requestWithdrawal = functions
   .region('asia-northeast3')
   .https.onCall(async (data, context) => {
     if (!context.auth) {
       throw new functions.HttpsError('unauthenticated', '로그인이 필요합니다.');
+    }
+
+    // 오픈뱅킹 미연동 상태의 프로덕션 호출 차단
+    if (process.env.ALLOW_MOCK_PAYMENT !== 'true') {
+      throw new functions.HttpsError(
+        'unimplemented',
+        '출금 시스템 점검 중입니다. 잠시 후 다시 시도해주세요.',
+      );
     }
 
     const userId = context.auth.uid;

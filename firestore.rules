@@ -64,6 +64,30 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Heartbeat: 본인 챌린지의 것만 읽기, 쓰기는 Functions만
+    // (주의: 실제 배포는 RTDB 사용 권장 — Firebase 비용 최적화 메모 참조)
+    match /heartbeats/{challengeId} {
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    // 이의 제기: 본인 것만 읽기/생성, 상태 변경은 Functions만
+    match /disputes/{disputeId} {
+      allow read: if request.auth != null
+                  && resource.data.userId == request.auth.uid;
+
+      // 사용자 이의 제기 생성 허용 — 단, 상태/판정 필드는 서버만
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.status == 'open'
+                    && request.resource.data.autoJudgement == null
+                    && request.resource.data.resolution == null
+                    && request.resource.data.refundAmount == null;
+
+      allow update, delete: if false;
+    }
+
     // Rate Limiting (Cloud Functions만 쓰기)
     match /_rateLimits/{docId} {
       allow read, write: if false;
