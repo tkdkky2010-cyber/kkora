@@ -1,12 +1,10 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { checkRateLimit } from '../utils/security';
+import { CHARGE_AMOUNTS } from '../utils/config';
 
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
-
-// 클라이언트 types/payment.ts의 CHARGE_AMOUNTS와 반드시 동기화
-const VALID_AMOUNTS = [5000, 10000, 30000, 50000];
 
 /**
  * 예치금 충전 — Cloud Function
@@ -29,7 +27,7 @@ export const requestDeposit = functions
       throw new functions.HttpsError('resource-exhausted', '요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.');
     }
 
-    if (!VALID_AMOUNTS.includes(amount)) {
+    if (!CHARGE_AMOUNTS.includes(amount)) {
       throw new functions.HttpsError('invalid-argument', '유효하지 않은 충전 금액입니다.');
     }
 

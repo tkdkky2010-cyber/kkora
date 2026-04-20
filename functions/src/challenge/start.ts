@@ -2,6 +2,7 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { getKSTHour, getKSTDateString, getKSTDay } from '../utils/time';
 import { checkRateLimit } from '../utils/security';
+import { CHALLENGE_AMOUNTS } from '../utils/config';
 
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -9,12 +10,10 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-const VALID_AMOUNTS = [1000, 5000, 10000];
-
 /**
  * 챌린지 시작 — Cloud Function
  * 1. KST 기준 참여 시간 검증 (22:00~23:59)
- * 2. 금액 검증 (1000/5000/10000)
+ * 2. 금액 검증 (config.CHALLENGE_AMOUNTS)
  * 3. 중복 참여 방지 (문서 ID = userId_dateStr)
  * 4. 잔액 차감 (Firestore Transaction)
  * 5. 챌린지 문서 생성
@@ -37,7 +36,7 @@ export const startChallenge = functions
     }
 
     // 금액 검증
-    if (!VALID_AMOUNTS.includes(amount)) {
+    if (!CHALLENGE_AMOUNTS.includes(amount)) {
       throw new functions.HttpsError('invalid-argument', '유효하지 않은 참여 금액입니다.');
     }
 

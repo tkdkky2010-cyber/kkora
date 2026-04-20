@@ -90,7 +90,7 @@ export default function ChecklistScreen() {
   const isFreePlay = freeTrialDaysLeft > 0;
   const { width: screenWidth } = useWindowDimensions();
   const [checks, setChecks] = useState<Record<string, boolean>>({});
-  const [selectedAmount, setSelectedAmount] = useState(1000);
+  const [selectedAmount, setSelectedAmount] = useState<number>(AppConfig.amounts[0]);
   const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(false);
 
