@@ -57,7 +57,7 @@ export async function createUserDoc(userId: string, data: {
     freeTrialDaysLeft: 3,
     streak: 0,
     maxStreak: 0,
-    level: '참가자',
+    level: '잠알',
     totalEarnings: 0,
     playerNumber,
     createdAt: serverTimestamp(),

@@ -126,6 +126,7 @@ export default function ProfileScreen() {
         visible={showLevelInfo}
         onClose={() => setShowLevelInfo(false)}
         currentLevel={level}
+        streak={streak}
         playerNumber={playerNumber}
       />
     </SafeAreaView>

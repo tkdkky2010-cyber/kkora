@@ -8,16 +8,15 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// 레벨 기준 (클라이언트 levels.ts와 동일 — 이모지 포함)
+// 레벨 기준 (클라이언트 src/constants/levels.ts와 반드시 동기화)
 const LEVEL_THRESHOLDS = [
-  { requiredDays: 0, name: '참가자' },
-  { requiredDays: 3, name: '생존자' },
-  { requiredDays: 7, name: '상위 50%' },
-  { requiredDays: 14, name: '상위 20% 🥈' },
-  { requiredDays: 30, name: '상위 5% 🥇' },
-  { requiredDays: 60, name: '상위 1% 💎' },
-  { requiredDays: 100, name: 'VIP 🃏' },
-  { requiredDays: 365, name: '호스트 👁️' },
+  { requiredDays: 0, name: '잠알' },
+  { requiredDays: 3, name: '꿈틀알' },
+  { requiredDays: 7, name: '부화' },
+  { requiredDays: 14, name: '병아리' },
+  { requiredDays: 30, name: '유니콘' },
+  { requiredDays: 60, name: '아기용' },
+  { requiredDays: 100, name: '불사조' },
 ];
 
 function getLevelByStreak(streak: number): string {
@@ -28,6 +27,9 @@ function getLevelByStreak(streak: number): string {
   }
   return LEVEL_THRESHOLDS[0].name;
 }
+
+// 신규 유저 초기 레벨명 (users create 시 firestore.rules와 일치해야 함)
+const INITIAL_LEVEL_NAME = LEVEL_THRESHOLDS[0].name;
 
 /**
  * 아침 7시 정산 — Scheduled Cloud Function (KST)
@@ -164,7 +166,7 @@ export const settleChallenge = functions
             // 레벨: streak 기반으로 계산하되, 강등된 레벨보다 높으면 복구
             // CLAUDE.md: "복귀해서 다시 해당 일수 채우면 레벨 복구"
             const streakLevel = getLevelByStreak(newStreak);
-            const currentLevel = userData.level || '참가자';
+            const currentLevel = userData.level || INITIAL_LEVEL_NAME;
             const streakIdx = LEVEL_THRESHOLDS.findIndex((l) => l.name === streakLevel);
             const currentIdx = LEVEL_THRESHOLDS.findIndex((l) => l.name === currentLevel);
             // streak으로 달성 가능한 레벨이 현재보다 높으면 승급, 아니면 유지

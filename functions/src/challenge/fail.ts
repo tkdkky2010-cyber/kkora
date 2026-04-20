@@ -9,10 +9,9 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// 레벨 강등용
+// 레벨 강등용 (클라이언트 src/constants/levels.ts와 반드시 동기화)
 const LEVEL_THRESHOLDS = [
-  '참가자', '생존자', '상위 50%', '상위 20% 🥈',
-  '상위 5% 🥇', '상위 1% 💎', 'VIP 🃏', '호스트 👁️',
+  '잠알', '꿈틀알', '부화', '병아리', '유니콘', '아기용', '불사조',
 ];
 
 function demoteLevel(currentLevel: string): string {
@@ -132,7 +131,7 @@ export const reportFailure = functions
 
         // 같은 주 2회 이상 실패 → 1단계 강등
         if (weeklyFailures >= 2) {
-          updateData.level = demoteLevel(userData.level || '참가자');
+          updateData.level = demoteLevel(userData.level || '잠알');
         }
       }
 

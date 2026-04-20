@@ -16,13 +16,14 @@ export function LevelBadge({ level, streak, playerNumber = 0, size = 'large' }: 
   const isLarge = size === 'large';
   const isNumberPhase = level.requiredDays === 0;
 
-  const displayName = isNumberPhase
-    ? level.name.replace('???', String(playerNumber))
+  // 0일 "잠알"은 플레이어 번호 함께 표시
+  const displayName = isNumberPhase && playerNumber > 0
+    ? `${level.name} #${playerNumber}`
     : level.name;
 
   return (
     <View style={styles.container}>
-      <LevelIcon icon={level.icon} size={size} />
+      <LevelIcon level={level} size={isLarge ? 'large' : 'small'} />
       <Text
         variant={isLarge ? 'h2' : 'body'}
         style={{ fontWeight: '700', marginTop: isLarge ? 12 : 6 }}

@@ -77,8 +77,8 @@ export default function HomeScreen() {
   const freeTrialDaysLeft = userData?.freeTrialDaysLeft ?? 0;
   const level = getLevelByStreak(streak);
   const isNumberPhase = level.requiredDays === 0;
-  const levelName = isNumberPhase
-    ? level.name.replace('???', String(playerNumber))
+  const levelName = isNumberPhase && playerNumber > 0
+    ? `${level.name} #${playerNumber}`
     : level.name;
 
   const shownConversionPopup = useRef(false);
@@ -125,7 +125,7 @@ export default function HomeScreen() {
           style={styles.profileButton}
           onPress={() => navigation.navigate('Profile')}
         >
-          <LevelIcon icon={level.icon} size="small" />
+          <LevelIcon level={level} size="small" />
         </TouchableOpacity>
       </View>
 
@@ -133,7 +133,12 @@ export default function HomeScreen() {
       <View style={styles.content}>
         {/* Level Badge */}
         <View style={styles.levelBadge}>
-          <LevelIcon icon={level.icon} size="large" />
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setShowLevelInfo(true)}
+          >
+            <LevelIcon level={level} size="large" />
+          </TouchableOpacity>
           <View style={styles.levelNameRow}>
             <Text variant="h2">{levelName}</Text>
             <TouchableOpacity
@@ -266,6 +271,7 @@ export default function HomeScreen() {
         visible={showLevelInfo}
         onClose={() => setShowLevelInfo(false)}
         currentLevel={level}
+        streak={streak}
         playerNumber={playerNumber}
       />
     </SafeAreaView>

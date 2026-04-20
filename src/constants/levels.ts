@@ -1,66 +1,85 @@
-export type IconFamily = 'MaterialCommunityIcons' | 'Ionicons' | 'FontAwesome5';
+import type { ImageSourcePropType } from 'react-native';
 
-export interface LevelIcon {
-  family: IconFamily;
-  name: string;
-  color: string;
-}
+export type LevelTheme = 'v1' | 'v2';
 
 export interface SleepLevel {
   name: string;
-  icon: LevelIcon;
   requiredDays: number;
   description: string;
+  color: string;
+  images: Record<LevelTheme, ImageSourcePropType>;
 }
 
 export const SLEEP_LEVELS: SleepLevel[] = [
   {
-    name: '참가자 ???번',
-    icon: { family: 'MaterialCommunityIcons', name: 'account-outline', color: '#6b6b7b' },
+    name: '잠알',
     requiredDays: 0,
-    description: '최대 6자리 번호 부여 (1~100,000)',
+    description: '아직 깨어나지 못한 알',
+    color: '#6b6b7b',
+    images: {
+      v1: require('../assets/images/levels/v1/level-0-sleepy-egg.png'),
+      v2: require('../assets/images/levels/v2/level-0-sleepy-egg.png'),
+    },
   },
   {
-    name: '생존자',
-    icon: { family: 'MaterialCommunityIcons', name: 'shield-check-outline', color: '#3ddc84' },
+    name: '꿈틀알',
     requiredDays: 3,
-    description: '번호 사라지고 생존자로 승격',
+    description: '생존의 기미',
+    color: '#3ddc84',
+    images: {
+      v1: require('../assets/images/levels/v1/level-3-wiggle-egg.png'),
+      v2: require('../assets/images/levels/v2/level-3-wiggle-egg.png'),
+    },
   },
   {
-    name: '상위 50%',
-    icon: { family: 'Ionicons', name: 'flame-outline', color: '#4a9eff' },
+    name: '부화',
     requiredDays: 7,
-    description: '번호 사라지고 등급 시작',
+    description: '알을 깨고 나왔다',
+    color: '#4a9eff',
+    images: {
+      v1: require('../assets/images/levels/v1/level-7-hatch.png'),
+      v2: require('../assets/images/levels/v2/level-7-hatch.png'),
+    },
   },
   {
-    name: '상위 20% 🥈',
-    icon: { family: 'Ionicons', name: 'flame', color: '#a78bfa' },
+    name: '병아리',
     requiredDays: 14,
-    description: '상위권 진입',
+    description: '삐약',
+    color: '#f0b429',
+    images: {
+      v1: require('../assets/images/levels/v1/level-14-chick.png'),
+      v2: require('../assets/images/levels/v2/level-14-chick.png'),
+    },
   },
   {
-    name: '상위 5% 🥇',
-    icon: { family: 'MaterialCommunityIcons', name: 'sword-cross', color: '#f0b429' },
+    name: '유니콘',
     requiredDays: 30,
-    description: '엘리트',
+    description: '전설 속의 존재',
+    color: '#a78bfa',
+    images: {
+      v1: require('../assets/images/levels/v1/level-30-unicorn.png'),
+      v2: require('../assets/images/levels/v2/level-30-unicorn.png'),
+    },
   },
   {
-    name: '상위 1% 💎',
-    icon: { family: 'MaterialCommunityIcons', name: 'diamond-stone', color: '#60e1f0' },
+    name: '아기용',
     requiredDays: 60,
-    description: '극소수',
+    description: '불을 품은 존재',
+    color: '#60e1f0',
+    images: {
+      v1: require('../assets/images/levels/v1/level-60-dragon.png'),
+      v2: require('../assets/images/levels/v2/level-60-dragon.png'),
+    },
   },
   {
-    name: 'VIP 🃏',
-    icon: { family: 'MaterialCommunityIcons', name: 'crown', color: '#ffd700' },
+    name: '불사조',
     requiredDays: 100,
-    description: '번호도 %도 필요 없는 존재',
-  },
-  {
-    name: '호스트 👁️',
-    icon: { family: 'MaterialCommunityIcons', name: 'eye', color: '#e8e8ec' },
-    requiredDays: 365,
-    description: '게임의 주인',
+    description: '재탄생의 상징',
+    color: '#ffd700',
+    images: {
+      v1: require('../assets/images/levels/v1/level-100-phoenix.png'),
+      v2: require('../assets/images/levels/v2/level-100-phoenix.png'),
+    },
   },
 ];
 
@@ -94,4 +113,14 @@ export function getDemotedLevel(
   const idx = getLevelIndex(currentLevel);
   const demotedIdx = Math.max(0, idx - 1);
   return SLEEP_LEVELS[demotedIdx];
+}
+
+/**
+ * 다음 레벨까지 남은 일수
+ */
+export function getDaysToNextLevel(streak: number): number | null {
+  const currentLevel = getLevelByStreak(streak);
+  const currentIdx = getLevelIndex(currentLevel);
+  if (currentIdx === SLEEP_LEVELS.length - 1) return null; // 최고 레벨
+  return SLEEP_LEVELS[currentIdx + 1].requiredDays - streak;
 }

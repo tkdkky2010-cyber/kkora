@@ -1,53 +1,104 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { LevelIcon as LevelIconType } from '../../constants/levels';
-import { Colors } from '../../constants/colors';
+import React, { useEffect, useRef } from 'react';
+import { View, Image, StyleSheet, Animated, Easing } from 'react-native';
+import { SleepLevel } from '../../constants/levels';
+import { useLevelTheme } from '../../contexts/LevelThemeContext';
 
 interface LevelIconProps {
-  icon: LevelIconType;
-  size?: 'small' | 'large';
+  level: SleepLevel;
+  size?: 'small' | 'medium' | 'large';
+  /** 정적으로 표시 (모달 내 미리보기 등) */
+  static?: boolean;
+  /** 잠금 상태 (미달 레벨) — 그레이스케일 처리 */
+  locked?: boolean;
 }
 
-const ICON_FAMILIES = {
-  MaterialCommunityIcons,
-  Ionicons,
-  FontAwesome5,
+const SIZE_MAP = {
+  small: 40,
+  medium: 64,
+  large: 120,
 } as const;
 
-export function LevelIcon({ icon, size = 'large' }: LevelIconProps) {
-  const isLarge = size === 'large';
-  const iconSize = isLarge ? 40 : 20;
-  const containerSize = isLarge ? 80 : 40;
+export function LevelIcon({ level, size = 'large', static: isStatic = false, locked = false }: LevelIconProps) {
+  const { theme } = useLevelTheme();
+  const boxSize = SIZE_MAP[size];
 
-  const IconComponent = ICON_FAMILIES[icon.family];
+  const scale = useRef(new Animated.Value(1)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isStatic) return;
+
+    // 아이들 애니메이션: 스케일 펄스 + 위아래 플로팅 동시 실행
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.06,
+          duration: 900,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    const float = Animated.loop(
+      Animated.sequence([
+        Animated.timing(translateY, {
+          toValue: -6,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 0,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    pulse.start();
+    float.start();
+
+    return () => {
+      pulse.stop();
+      float.stop();
+    };
+  }, [isStatic, scale, translateY]);
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          width: containerSize,
-          height: containerSize,
-          borderRadius: containerSize / 2,
-          backgroundColor: icon.color + '15',
-          borderColor: icon.color + '30',
-        },
-      ]}
-    >
-      <IconComponent
-        name={icon.name as any}
-        size={iconSize}
-        color={icon.color}
-      />
+    <View style={[styles.container, { width: boxSize, height: boxSize }]}>
+      <Animated.View
+        style={{
+          width: boxSize,
+          height: boxSize,
+          transform: [{ scale }, { translateY }],
+          opacity: locked ? 0.35 : 1,
+        }}
+      >
+        <Image
+          source={level.images[theme]}
+          style={styles.image}
+          resizeMode="contain"
+        />
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1.5,
+    justifyContent: 'center',
+  },
+  image: {
+    width: '100%',
+    height: '100%',
   },
 });

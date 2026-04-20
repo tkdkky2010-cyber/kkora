@@ -12,12 +12,14 @@ import { Text } from '../atoms/Text';
 import { LevelIcon } from '../atoms/LevelIcon';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
-import { SLEEP_LEVELS, SleepLevel, getLevelIndex } from '../../constants/levels';
+import { SLEEP_LEVELS, SleepLevel, getLevelIndex, getDaysToNextLevel } from '../../constants/levels';
+import { useLevelTheme } from '../../contexts/LevelThemeContext';
 
 interface LevelInfoModalProps {
   visible: boolean;
   onClose: () => void;
   currentLevel: SleepLevel;
+  streak?: number;
   playerNumber?: number;
 }
 
@@ -25,9 +27,12 @@ export function LevelInfoModal({
   visible,
   onClose,
   currentLevel,
-  playerNumber = 247,
+  streak = 0,
+  playerNumber = 0,
 }: LevelInfoModalProps) {
+  const { theme, setTheme } = useLevelTheme();
   const currentIdx = getLevelIndex(currentLevel);
+  const daysToNext = getDaysToNextLevel(streak);
 
   return (
     <Modal
@@ -49,15 +54,48 @@ export function LevelInfoModal({
             </TouchableOpacity>
           </View>
 
-          <Text variant="caption" color={Colors.textSub} style={{ marginBottom: 20 }}>
+          <Text variant="caption" color={Colors.textSub} style={{ marginBottom: 12 }}>
             연속 성공일에 따라 레벨이 올라갑니다
+            {daysToNext !== null && streak > 0 && ` · 다음 레벨까지 ${daysToNext}일`}
           </Text>
+
+          {/* V1 / V2 테마 탭 */}
+          <View style={styles.tabs}>
+            <TouchableOpacity
+              style={[styles.tab, theme === 'v1' && styles.tabActive]}
+              onPress={() => setTheme('v1')}
+              activeOpacity={0.8}
+            >
+              <Text
+                variant="body"
+                color={theme === 'v1' ? Colors.textPrimary : Colors.textSub}
+                style={{ fontWeight: theme === 'v1' ? '700' : '400' }}
+              >
+                컬러
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, theme === 'v2' && styles.tabActive]}
+              onPress={() => setTheme('v2')}
+              activeOpacity={0.8}
+            >
+              <Text
+                variant="body"
+                color={theme === 'v2' ? Colors.textPrimary : Colors.textSub}
+                style={{ fontWeight: theme === 'v2' ? '700' : '400' }}
+              >
+                블랙
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {SLEEP_LEVELS.map((sl, idx) => {
               const isCurrent = currentIdx === idx;
-              const displayName = sl.requiredDays === 0
-                ? sl.name.replace('???', String(playerNumber))
+              const isLocked = idx > currentIdx;
+              const isNumberPhase = sl.requiredDays === 0;
+              const displayName = isNumberPhase && playerNumber > 0 && isCurrent
+                ? `${sl.name} #${playerNumber}`
                 : sl.name;
 
               return (
@@ -65,18 +103,21 @@ export function LevelInfoModal({
                   key={idx}
                   style={[styles.levelItem, isCurrent && styles.levelItemCurrent]}
                 >
-                  <LevelIcon icon={sl.icon} size="small" />
+                  <LevelIcon level={sl} size="small" static locked={isLocked} />
                   <View style={styles.levelItemText}>
                     <Text
                       variant="body"
-                      color={isCurrent ? Colors.textPrimary : Colors.textSub}
+                      color={isLocked ? Colors.textSub : Colors.textPrimary}
                       style={{ fontWeight: isCurrent ? '700' : '400' }}
                     >
                       {displayName}
                       {isCurrent && '  (현재)'}
+                      {isLocked && '  🔒'}
                     </Text>
                     <Text variant="caption" color={Colors.textDisabled}>
                       {sl.requiredDays === 0 ? '시작' : `${sl.requiredDays}일 연속 성공`}
+                      {' · '}
+                      {sl.description}
                     </Text>
                   </View>
                 </View>
@@ -106,7 +147,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bgCard,
     borderRadius: 20,
     padding: Spacing.cardPadding,
-    maxHeight: '80%',
+    maxHeight: '85%',
     borderWidth: 1,
     borderColor: Colors.border,
   },
@@ -115,6 +156,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+  },
+  tabs: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+    padding: 4,
+    backgroundColor: Colors.bgElevated,
+    borderRadius: 12,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  tabActive: {
+    backgroundColor: Colors.bgCard,
   },
   levelItem: {
     flexDirection: 'row',

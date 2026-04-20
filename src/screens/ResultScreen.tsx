@@ -103,7 +103,9 @@ export default function ResultScreen() {
 
   const level = getLevelByStreak(streak);
   const isNumberPhase = level.requiredDays === 0;
-  const levelName = isNumberPhase ? level.name.replace('???', String(playerNumber)) : level.name;
+  const levelName = isNumberPhase && playerNumber > 0
+    ? `${level.name} #${playerNumber}`
+    : level.name;
 
   const isAllSuccess = poolData.totalParticipants > 0 && poolData.survivors === poolData.totalParticipants;
   const survivalRate = poolData.totalParticipants > 0
@@ -255,7 +257,7 @@ export default function ResultScreen() {
             <Card>
               <View style={styles.levelRow}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <LevelIcon icon={level.icon} size="small" />
+                  <LevelIcon level={level} size="small" />
                   <View>
                     <Text variant="caption" color={Colors.textSub}>현재 레벨</Text>
                     <Text variant="body" style={{ marginTop: 2 }}>{levelName}</Text>

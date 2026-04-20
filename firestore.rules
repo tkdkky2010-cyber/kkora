@@ -13,7 +13,7 @@ service cloud.firestore {
                     && request.resource.data.freeTrialDaysLeft == 3
                     && request.resource.data.streak == 0
                     && request.resource.data.maxStreak == 0
-                    && request.resource.data.level == '참가자'
+                    && request.resource.data.level == '잠알'
                     && request.resource.data.totalEarnings == 0;
 
       // 수정 시: 금융 필드 + 게임 진행 필드는 Cloud Functions만 수정 가능
