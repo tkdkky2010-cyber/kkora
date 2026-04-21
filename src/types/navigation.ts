@@ -10,6 +10,8 @@ export type RootStackParamList = {
   Settings: undefined;
   Charge: undefined;
   Withdraw: undefined;
+  DisputeList: undefined;
+  DisputeSubmit: { challengeId?: string } | undefined;
 };
 
 declare global {

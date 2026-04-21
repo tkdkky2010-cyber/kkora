@@ -18,6 +18,8 @@ import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ChargeScreen from '../screens/ChargeScreen';
 import WithdrawScreen from '../screens/WithdrawScreen';
+import DisputeListScreen from '../screens/DisputeListScreen';
+import DisputeSubmitScreen from '../screens/DisputeSubmitScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -93,6 +95,8 @@ export default function AppNavigator() {
       <Stack.Screen name="Settings" component={SettingsScreen} options={backHeaderOptions} />
       <Stack.Screen name="Charge" component={ChargeScreen} options={backHeaderOptions} />
       <Stack.Screen name="Withdraw" component={WithdrawScreen} options={backHeaderOptions} />
+      <Stack.Screen name="DisputeList" component={DisputeListScreen} />
+      <Stack.Screen name="DisputeSubmit" component={DisputeSubmitScreen} />
     </Stack.Navigator>
   );
 }

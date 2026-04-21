@@ -73,6 +73,40 @@ export async function requestWithdrawal(
 }
 
 /**
+ * Heartbeat ping (Cloud Function 호출)
+ * - 챌린지 중 30초 주기 호출 → RTDB에 lastPingAt 갱신
+ */
+export async function pingChallenge(
+  challengeId: string,
+  appState: 'active' | 'background' = 'active',
+  batteryLevel?: number,
+): Promise<{ ok: boolean; pingCount?: number; throttled?: boolean }> {
+  const callable = httpsCallable<
+    { challengeId: string; appState: string; batteryLevel?: number },
+    { ok: boolean; pingCount?: number; throttled?: boolean }
+  >(functions, 'pingChallenge');
+  const result = await callable({ challengeId, appState, batteryLevel });
+  return result.data;
+}
+
+/**
+ * 이의 제기 제출 (Cloud Function 호출)
+ */
+export async function submitDispute(data: {
+  challengeId: string | null;
+  type: 'challenge_result' | 'payment' | 'refund' | 'other';
+  reason: string;
+  evidence?: string[];
+}): Promise<{ disputeId: string }> {
+  const callable = httpsCallable<typeof data, { disputeId: string }>(
+    functions,
+    'submitDispute',
+  );
+  const result = await callable(data);
+  return result.data;
+}
+
+/**
  * 회원 탈퇴 (Cloud Function 호출)
  */
 export async function deleteAccount(

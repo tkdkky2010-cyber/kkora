@@ -9,6 +9,7 @@ import { subscribeDailyPool } from '../services/firebase/firestore';
 import { reportGrace } from '../services/firebase/functions';
 import { useAppState } from '../hooks/useAppState';
 import { useTimer } from '../hooks/useTimer';
+import { useHeartbeat } from '../hooks/useHeartbeat';
 import { Text } from '../components/atoms/Text';
 import { Card } from '../components/atoms/Card';
 import { Badge } from '../components/atoms/Badge';
@@ -149,6 +150,9 @@ export default function ChallengeScreen() {
     startTimeMs,
     onComplete: navigateToResult,
   });
+
+  // 30초 주기 heartbeat — 서버가 120초 무응답 시 자동 실패 처리
+  useHeartbeat(challengeId, challengeActive);
 
   // Android 하드웨어 백버튼 방지
   useEffect(() => {

@@ -3,6 +3,8 @@ import { startChallenge } from './challenge/start';
 import { reportGrace } from './challenge/grace';
 import { reportFailure } from './challenge/fail';
 import { settleChallenge } from './challenge/settle';
+import { pingChallenge, heartbeatTimeoutWatcher } from './challenge/heartbeat';
+import { submitDispute, autoJudgeDispute } from './challenge/dispute';
 
 // Payment
 import { requestDeposit } from './payment/deposit';
@@ -23,6 +25,10 @@ export {
   reportGrace,
   reportFailure,
   settleChallenge,
+  pingChallenge,
+  heartbeatTimeoutWatcher,
+  submitDispute,
+  autoJudgeDispute,
   // Payment
   requestDeposit,
   requestWithdrawal,

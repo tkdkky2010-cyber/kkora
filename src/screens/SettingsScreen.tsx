@@ -2,12 +2,17 @@ import { useState, useEffect } from 'react';
 import { StyleSheet, View, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import appJson from '../../app.json';
 import { Text } from '../components/atoms/Text';
 import { Card } from '../components/atoms/Card';
 import { Toggle } from '../components/atoms/Toggle';
 import { Colors } from '../constants/colors';
 import { Spacing } from '../constants/spacing';
+import { RootStackParamList } from '../types/navigation';
+
+type Nav = NativeStackNavigationProp<RootStackParamList, 'Settings'>;
 import { useAuth } from '../contexts/AuthContext';
 import { deleteAccount } from '../services/firebase/functions';
 
@@ -40,6 +45,7 @@ const SETTINGS_KEYS = {
 };
 
 export default function SettingsScreen() {
+  const navigation = useNavigation<Nav>();
   const [lockScreen, setLockScreen] = useState(false);
   const [pushNotification, setPushNotification] = useState(true);
   const [reminderNotification, setReminderNotification] = useState(true);
@@ -102,8 +108,13 @@ export default function SettingsScreen() {
         {/* 고객센터 */}
         <Text variant="h2" style={{ marginBottom: 12 }}>고객센터</Text>
         <Card style={{ marginBottom: Spacing.sectionGap }}>
+          <TouchableOpacity style={styles.linkRow} activeOpacity={0.7} onPress={() => navigation.navigate('DisputeList')}>
+            <Text variant="body">이의 제기</Text>
+            <Text variant="body" color={Colors.textSub}>{'>'}</Text>
+          </TouchableOpacity>
+          <View style={styles.divider} />
           <TouchableOpacity style={styles.linkRow} activeOpacity={0.7} onPress={() => Alert.alert('1:1 문의', '이메일: support@kkora.kr\n\n문의 사항을 이메일로 보내주시면 영업일 기준 1~2일 내에 답변드립니다.')}>
-            <Text variant="body">1:1 문의</Text>
+            <Text variant="body">1:1 문의 (이메일)</Text>
             <Text variant="body" color={Colors.textSub}>{'>'}</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
