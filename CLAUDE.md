@@ -498,6 +498,77 @@ timeDriftMaxMinutes           = 5         // 서버/로컬 시간 차이 한계
 - Crashlytics 크래시 이벤트 + heartbeat 단절 시각 일치
 - Firestore 장애 로그 시점에 정산 실패
 
+### 환불 정책 3단 계층 (치팅 방어 설계)
+
+외부 장애 환불 요청을 사용자 주장이 아닌 **서버 로그 기반**으로 판정한다. 전액 무조건 환불은 치팅 인센티브를 만들기 때문에 아래 3단 계층을 적용한다.
+
+**1단: 자동 환불 (즉시, disputes 없이)**
+- Crashlytics 크래시 이벤트 + heartbeat 단절 시각 일치 (60초 오차 이내)
+- Firestore/서버 장애 로그 시점과 정산 실패 시각 일치
+- **계정당 월 1회 한도** (초과 시 2단으로 이관)
+
+**2단: 수동 검토 (24~72시간)**
+- **배터리 방전**: 시작 시 50% 이상 체크 통과자에 한함 + 배터리 소모 속도가 정상 범위 이내
+- **네트워크 장애**: 통신사 IP 로그 기반 광역 장애 시점 확인
+- **OS 자체 종료 (메모리 부족)**: 복귀 후 10초 이내 재접속 로그 확인
+- 모두 **2회차부터는 실패 처리** (반복 패턴 = 치팅 의심)
+
+**3단: 절대 환불 불가 (즉시 실패 확정)**
+- 다른 앱 실행으로 인한 이탈 (명백한 사용자 의지)
+- 알 수 없는 재부팅이 3회 이상 반복 (치팅 패턴)
+- 루팅/탈옥 기기 감지 (`expo-device` + jail-monk) — 애초 참여 차단이 원칙
+- 앱 강제 종료(kill swipe)
+
+**운영 원칙**
+- 사용자 주장만으로 환불하지 않는다 — 반드시 객관 서버 로그 요구
+- 환불 거부 시 사유를 상세 문자/푸시로 통지 (disputes 재제기 가능)
+- 월 환불 횟수가 임계치 초과한 계정은 별도 큐로 분리하여 수동 감사
+
+---
+
+## 백업 플랜 (서비스 긴급 중단 대응)
+
+> 앱스토어 사후 제거, 법적 제재, 카카오페이 계약 해지 등 **심사 통과 이후에도 발생 가능한 중단 사태**에 대비한다. 상세 절차는 [`docs/emergency/takedown-playbook.md`](docs/emergency/takedown-playbook.md) 참조.
+
+### 구현된 기술 수단
+
+| 수단 | 파일 | 용도 |
+|---|---|---|
+| **Kill Switch** | `functions/src/emergency/serviceKillSwitch.ts` | Firestore 플래그로 신규 챌린지/충전 즉시 차단 (재배포 불필요) |
+| **Bulk Refund** | `functions/src/emergency/bulkRefund.ts` | 전체 유저 예치금 일괄 환불 (dryRun 필수 선행, 배치 2000명) |
+| **User Data Export** | `functions/src/emergency/exportUserData.ts` | 유저 본인 데이터 JSON 다운로드 (개인정보이동권) |
+| **Takedown Playbook** | `docs/emergency/takedown-playbook.md` | T+0 ~ T+30일 단계별 대응 SOP |
+| **Notice Templates** | `docs/emergency/user-notices.md` | 시나리오별 공지 템플릿 5종 (법무 검토 필수) |
+| **PWA Fallback** | `docs/emergency/pwa-fallback.md` | 앱 제거 시 웹 출금/조회 창구 설계 |
+| **Legal Archive** | `docs/legal/README.md` | 자문·유권해석·계약서 원본 PDF 보관 규칙 |
+
+### 운영 수단 (코드 외)
+
+- **분쟁 대응 준비금**: 오픈 당일 기준 전체 예치금의 **110%** 별도 계좌 동결
+- **법무법인 리테이너**: 긴급 대응 조항 포함, 출시 8주 전까지 계약 체결
+- **환불 재원 전용 계좌**: 매출과 분리, 서비스 종료 시 환불 우선 재원
+- **Firestore 일 1회 백업 크론**: `gcloud firestore export gs://kkora-backup/daily-{yyyy-mm-dd}`
+
+### 절대 원칙
+
+1. **출금 기능은 어떤 상황에서도 유지** — 유저 환불 출구
+2. **진행 중 챌린지는 정상 정산 후 종료** — 강제 실패 금지 (분쟁 소지)
+3. **공지 발송 전 법무법인 검토** — 금칙어(도박/불법/사기) 회피
+4. **모든 긴급 조치는 `auditLogs/` 기록** — 사후 감사·재발 방지
+
+### Kill Switch 연동 의무
+
+`startChallenge`, `requestDeposit`, `pingChallenge` 등 유저 액션 진입 함수는 아래 체크를 함수 초입에 포함해야 한다:
+
+```ts
+const flag = await db.collection('systemFlags').doc('service').get();
+if (flag.exists && flag.data()?.blockChallenge) {
+  throw new functions.HttpsError('unavailable', flag.data()!.reason);
+}
+```
+
+출금(`requestWithdrawal`)은 `blockWithdrawal` 플래그를 별도 확인하되, **기본값은 false** (환불 출구 보존).
+
 ---
 
 ## 기술 스택

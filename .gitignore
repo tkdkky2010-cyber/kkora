@@ -40,3 +40,6 @@ yarn-error.*
 /ios
 /android
 .env
+
+# 민감 법률 문서 (변호사-의뢰인 비밀특권 / 개인정보)
+docs/legal/private/

@@ -19,6 +19,11 @@ import { sendReminder } from './notification/reminder';
 import { sendResultNotification } from './notification/result';
 import { sendInactiveReminder } from './notification/inactive';
 
+// Emergency (긴급 대응 — admin only)
+import { bulkRefund } from './emergency/bulkRefund';
+import { setServiceKillSwitch } from './emergency/serviceKillSwitch';
+import { exportUserData } from './emergency/exportUserData';
+
 export {
   // Challenge
   startChallenge,
@@ -39,4 +44,8 @@ export {
   sendReminder,
   sendResultNotification,
   sendInactiveReminder,
+  // Emergency
+  bulkRefund,
+  setServiceKillSwitch,
+  exportUserData,
 };
